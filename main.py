@@ -6,7 +6,7 @@ from utils import *
 all_data = data.get()
 all_data = data.filter(all_data, 'us')
 print(len(all_data))
-all_data = all_data[:6000]  # TODO: delete later
+#all_data = all_data[:0]  # TODO: delete later
 '''
 # Basic four node test
 all_data = []
@@ -17,12 +17,13 @@ all_data.append({'watchlink': 3, 'latitude': 90, 'longitude': 80, 'keywords': 'h
 '''
 train_data, test_data = data.split(all_data, 0.8)
 
-NUM_ITERATIONS = 0
+NUM_ITERATIONS = 1
 DROP_EDGE_THRESHOLD = len(all_data) * 0.1
 img_data_mappings = {}
 G = UndirectedGraph()
 
 print('Num iterations: {0}'.format(NUM_ITERATIONS))
+
 
 def get_tag_approx_loc():
     tag_approx_loc = {}
@@ -33,7 +34,7 @@ def get_tag_approx_loc():
 
 tag_approx_loc = get_tag_approx_loc()
 
-def process_training_data(train_data, img_data_mappings):
+def process_training_data(train_data, img_data_mappings, tag_approx_loc):
     tag_locations = {}
     tag_mean_locations = {}
     train_tag_counts = Counter()
@@ -50,28 +51,17 @@ def process_training_data(train_data, img_data_mappings):
         # Count tags
         train_tag_counts.add_counts(img_tags)
 
-        # Contribute toward total lat/lon sum for each tag
+        # Create lists of locations for each tags
         for tag in img_tags:
             if tag not in tag_locations:
                 tag_locations[tag] = []
             tag_locations[tag].append(Location(lat, lon, var))
 
-            if tag not in tag_mean_locations:
-                tag_mean_locations[tag] = Location(lat, lon, var)
-            else:
-                tag_mean_locations[tag].lat += lat
-                tag_mean_locations[tag].lon += lon
+    return train_tag_counts, tag_locations
 
-    # Take avg of all (lat,lon) pairs associated with each tag
-    for tag, loc in tag_mean_locations.items():
-        loc.lat /= train_tag_counts.get_count(tag)
-        loc.lon /= train_tag_counts.get_count(tag)
+train_tag_counts, tag_locations = process_training_data(train_data, img_data_mappings, tag_approx_loc)
 
-    return tag_mean_locations, train_tag_counts, tag_locations
-
-tag_mean_locations, train_tag_counts, tag_locations = process_training_data(train_data, img_data_mappings)
-
-def get_tag_spatial_var(tag_locations):
+def get_tag_approx_loc_from_train(tag_locations):
     def get_avg(lst):
         if len(lst) == 0:
             return 0
@@ -106,9 +96,12 @@ def get_tag_spatial_var(tag_locations):
                 tag_mean_loc[tag] = Location(avg_lat, avg_lon, var)
     return tag_mean_loc
 
-tag_approx_loc = get_tag_spatial_var(tag_locations)
-
-def process_test_data(test_data, train_tag_counts, tag_mean_locations, img_data_mappings, tag_approx_loc):
+tag_approx_loc = get_tag_approx_loc_from_train(tag_locations)
+print(tag_approx_loc['newyork'])
+print(tag_approx_loc['nyc'])
+print(tag_approx_loc['timessquare'])
+print(tag_approx_loc['manhattan'])
+def process_test_data(test_data, train_tag_counts, img_data_mappings, tag_approx_loc):
     total_tag_counts = train_tag_counts.copy()
     
     # Process test data
@@ -120,14 +113,14 @@ def process_test_data(test_data, train_tag_counts, tag_mean_locations, img_data_
         total_tag_counts.add_counts(img_tags)
    
         # Initialize lat, lon, and var
-        min_var_loc = Location(0, 0, 999999999)
+        min_var_loc = Location(37, 122, 15098163) # Approx lat/lon of SF, and approx var of tag 'iphone'
         for tag in img_tags:
             if tag in tag_approx_loc and tag_approx_loc[tag].var < min_var_loc.var:
                 min_var_loc = tag_approx_loc[tag]
         img_data_mappings[img_id] = min_var_loc
     return total_tag_counts
 
-total_tag_counts = process_test_data(test_data, train_tag_counts, tag_mean_locations, img_data_mappings, tag_approx_loc)
+total_tag_counts = process_test_data(test_data, train_tag_counts, img_data_mappings, tag_approx_loc)
 
 # Add vertices to graph
 for img_id in img_data_mappings:
@@ -151,11 +144,30 @@ for img1_i in range(len(all_data)):
 
 print('Num edges: ' + str(edge_count))
 
+###################
+'''
+G = UndirectedGraph()
+G.add_vertex('berkeley')
+G.add_vertex('sathergate')
+G.add_vertex('iphone')
+G.add_vertex('test')
+G.add_edge('iphone', 'test')
+G.add_edge('berkeley', 'test')
+G.add_edge('sathergate', 'test')
+img_data_mappings = {}
+img_data_mappings['iphone'] = Location(36.02264117460317,-36.72232646031748,15098163.310764369)
+img_data_mappings['berkeley'] = Location(80, 80, .00001)
+img_data_mappings['sathergate'] = Location(90, 90, .0000001)
+img_data_mappings['test'] = Location(90, 90, .01)
+test_data = []
+test_data.append({'watchlink': 'test', 'latitude': '90', 'longitude': '90'})
+'''
+###################
 
 def calc_update(img, loc, G):
     def safe_div(num1, num2):
         if num2 == 0:
-            return num1/.00001
+            return num1 / .0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001
         else:
             return num1 / num2
 
@@ -220,6 +232,8 @@ for test_img in test_data:
     median_error_finder.add(error)
     if error < 1:
         one_km_count += 1
+        print(img_result_loc)
+        print()
     elif error < 5:
         five_km_count += 1
     elif error < 10:

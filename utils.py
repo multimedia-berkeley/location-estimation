@@ -10,6 +10,12 @@ class Location(object):
     def __repr__(self):
         return '(lat: {0}, lon: {1}, var: {2})'.format(self.lat, self.lon, self.var)
 
+    def __eq__(self, other):
+        return self.lat == other.lat and self.lon == other.lon and self.var == other.var
+
+    def copy(self):
+        return Location(self.lat, self.lon, self.var)
+
     def avg(locations):
         total_lat = 0
         total_lon = 0
@@ -22,6 +28,9 @@ class Location(object):
         return Location(avg_lat, avg_lon)
 
     def dist(loc1, loc2, method=1):
+        loc1 = loc1.copy()
+        loc2 = loc2.copy()
+
         if abs(loc1.lat)>90 or abs(loc2.lat)>90 or abs(loc1.lon)>360 or abs(loc2.lon)>360:
             dist = -99999
             print('Degree(s) illegal! distance = -99999')
@@ -62,7 +71,7 @@ class Counter(object):
         self.counts = {}
 
     def __repr__(self):
-        return self.counts
+        return repr(self.counts)
 
     def copy(self):
         counter_copy = Counter()

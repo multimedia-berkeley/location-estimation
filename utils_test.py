@@ -46,6 +46,47 @@ class MedianTest(unittest.TestCase):
         nums.sort()
         self.assertEqual(M.med(), nums[(len(nums)-1) // 2])
 
+class LocationTest(unittest.TestCase):
+
+    def test_dist(self):
+        place1 = Location(37.789216, -122.401476) # Montgomery Bart
+        place2 = Location(37.784020, -122.408071) # Powell Bart
+        self.assertTrue(Location.dist(place1, place2) < 1)
+
+        place1 = Location(37.871692, -122.259381) # Campanile
+        place2 = Location(37.778971, -122.419160) # SF City Hall
+        self.assertTrue(Location.dist(place1, place2) > 17)
+        self.assertTrue(Location.dist(place1, place2) < 18)
+
+        place1 = Location(37.778971, -122.419160) # SF City Hall
+        place2 = Location(38.897675, -77.036592) # White House
+        self.assertTrue(Location.dist(place1, place2) > 3900)
+        self.assertTrue(Location.dist(place1, place2) < 4000)
+
+    def test_avg(self):
+        locs = [Location(0, 0), Location(1, 2), Location(2, 4)]
+        self.assertEqual(Location(1, 2), Location.avg(locs))
+
+class CounterTest(unittest.TestCase):
+
+    def test_basic(self):
+        counter = Counter()
+        items = []
+        for _ in range(10):
+            items.append('a')
+        for _ in range(20):
+            items.append('b')
+        
+        counter.add_counts(items)
+        self.assertEqual(10, counter.get_count('a'))
+        self.assertEqual(20, counter.get_count('b'))
+
+        counter.add_counts(items)
+        self.assertEqual(20, counter.get_count('a'))
+        self.assertEqual(40, counter.get_count('b'))
+
+
+
 if __name__ == '__main__':
     unittest.main()
 
