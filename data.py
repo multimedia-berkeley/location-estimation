@@ -52,7 +52,7 @@ def split(lst, proportion=0.5):
 
 def filter(data, place):
     LAT_LON_BOUNDS = {
-        'western_europe': [Location(36, -27), Location(70, 28)],
+        'western_europe': [Location(35.606383, -11.094409), Location(58.715069, 15.972913)],
         'us': [Location(30, -126), Location(49, -67)],
         'ca': [Location(32.18, -124.49), Location(41.94, -114.77)],
     }

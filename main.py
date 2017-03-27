@@ -4,7 +4,7 @@ import data
 from utils import *
 
 all_data = data.get()
-all_data = data.filter(all_data, 'us')
+all_data = data.filter(all_data, 'western_europe')
 print(len(all_data))
 #all_data = all_data[:0]  # TODO: delete later
 '''
@@ -17,51 +17,23 @@ all_data.append({'watchlink': 3, 'latitude': 90, 'longitude': 80, 'keywords': 'h
 '''
 train_data, test_data = data.split(all_data, 0.8)
 
-NUM_ITERATIONS = 1
+NUM_ITERATIONS = 20
 DROP_EDGE_THRESHOLD = len(all_data) * 0.1
 img_data_mappings = {}
 G = UndirectedGraph()
 
 print('Num iterations: {0}'.format(NUM_ITERATIONS))
 
+#def get_tag_approx_loc():
+#    tag_approx_loc = {}
+#    reader = csv.reader(open('tag_spatial_var.csv'), delimiter=",")
+#    for tag, lat, lon, var in reader:
+#        tag_approx_loc[tag] = Location(float(lat), float(lon), float(var))
+#    return tag_approx_loc
 
-def get_tag_approx_loc():
-    tag_approx_loc = {}
-    reader = csv.reader(open('tag_spatial_var.csv'), delimiter=",")
-    for tag, lat, lon, var in reader:
-        tag_approx_loc[tag] = Location(float(lat), float(lon), float(var))
-    return tag_approx_loc
+#tag_approx_loc = get_tag_approx_loc()
 
-tag_approx_loc = get_tag_approx_loc()
-
-def process_training_data(train_data, img_data_mappings, tag_approx_loc):
-    tag_locations = {}
-    tag_mean_locations = {}
-    train_tag_counts = Counter()
-
-    for train_img in train_data:
-        img_id = train_img['watchlink']
-        img_tags = train_img['keywords'].split(', ')
-
-        # Initialize lat, lon, var values
-        lat, lon = float(train_img['latitude']), float(train_img['longitude'])
-        var = min([tag_approx_loc[tag].var for tag in img_tags])
-        img_data_mappings[img_id] = Location(lat, lon, var)
-    
-        # Count tags
-        train_tag_counts.add_counts(img_tags)
-
-        # Create lists of locations for each tags
-        for tag in img_tags:
-            if tag not in tag_locations:
-                tag_locations[tag] = []
-            tag_locations[tag].append(Location(lat, lon, var))
-
-    return train_tag_counts, tag_locations
-
-train_tag_counts, tag_locations = process_training_data(train_data, img_data_mappings, tag_approx_loc)
-
-def get_tag_approx_loc_from_train(tag_locations):
+def process_train_tags(train_data):
     def get_avg(lst):
         if len(lst) == 0:
             return 0
@@ -74,7 +46,22 @@ def get_tag_approx_loc_from_train(tag_locations):
             n = float(n)
             total += (n-avg)*(n-avg)
         return total / len(l)
+    
+    tag_locations = {}
+    train_tag_counts = Counter()
+    for train_img in train_data:
+        lat, lon = float(train_img['latitude']), float(train_img['longitude'])
+        img_tags = train_img['keywords'].split(', ')
+        # Gather locations for each tag
+        for tag in img_tags:
+            if tag not in tag_locations:
+                tag_locations[tag] = []
+            tag_locations[tag].append(Location(lat, lon))
 
+        # Count tags
+        train_tag_counts.add_counts(img_tags)
+    
+    # Get average loc and spatial var for each tag
     tag_mean_loc = {}
     for tag, locations in tag_locations.items():
         lst_lat = []
@@ -94,13 +81,33 @@ def get_tag_approx_loc_from_train(tag_locations):
                 avg_dist = get_avg(list_distance)
                 var = get_var(list_distance, avg_dist)
                 tag_mean_loc[tag] = Location(avg_lat, avg_lon, var)
-    return tag_mean_loc
+    return tag_mean_loc, train_tag_counts
 
-tag_approx_loc = get_tag_approx_loc_from_train(tag_locations)
-print(tag_approx_loc['newyork'])
-print(tag_approx_loc['nyc'])
-print(tag_approx_loc['timessquare'])
-print(tag_approx_loc['manhattan'])
+tag_approx_loc, train_tag_counts = process_train_tags(train_data)
+
+
+def process_training_data(train_data, img_data_mappings, tag_approx_loc, train_tag_counts):
+
+    for train_img in train_data:
+        img_id = train_img['watchlink']
+        img_tags = train_img['keywords'].split(', ')
+
+        # Initialize lat, lon, var values
+        lat, lon = float(train_img['latitude']), float(train_img['longitude'])
+        min_var = 10 ** 5
+        for tag in img_tags:
+            if tag_approx_loc[tag].var < min_var and train_tag_counts.get_count(tag) > .01 * len(train_data):
+                min_var = tag_approx_loc[tag].var
+        #var = min([tag_approx_loc[tag].var for tag in img_tags])
+        img_data_mappings[img_id] = Location(lat, lon, min_var)
+    
+
+process_training_data(train_data, img_data_mappings, tag_approx_loc, train_tag_counts)
+
+#print(tag_approx_loc['newyork'])
+#print(tag_approx_loc['nyc'])
+#print(tag_approx_loc['timessquare'])
+#print(tag_approx_loc['manhattan'])
 def process_test_data(test_data, train_tag_counts, img_data_mappings, tag_approx_loc):
     total_tag_counts = train_tag_counts.copy()
     
@@ -113,9 +120,10 @@ def process_test_data(test_data, train_tag_counts, img_data_mappings, tag_approx
         total_tag_counts.add_counts(img_tags)
    
         # Initialize lat, lon, and var
-        min_var_loc = Location(37, 122, 15098163) # Approx lat/lon of SF, and approx var of tag 'iphone'
+        min_var_loc = Location(37.7749, -122.4194, 15098163) # Approx lat/lon of SF, and approx var of tag 'iphone'
+        min_var_loc = Location(52.52, 13.405, 15098163) # Approx lat/lon of Berlin, and approx var of tag 'iphone'
         for tag in img_tags:
-            if tag in tag_approx_loc and tag_approx_loc[tag].var < min_var_loc.var:
+            if tag in tag_approx_loc and tag_approx_loc[tag].var < min_var_loc.var and train_tag_counts.get_count(tag) > .01 * len(train_data):
                 min_var_loc = tag_approx_loc[tag]
         img_data_mappings[img_id] = min_var_loc
     return total_tag_counts
@@ -165,9 +173,16 @@ test_data.append({'watchlink': 'test', 'latitude': '90', 'longitude': '90'})
 ###################
 
 def calc_update(img, loc, G):
+    '''
+    if img == 'http://flickr.com/photos/32409718@N00/4189020951':
+        for neighbor in G.neighbors(img):
+            print(neighbor + ': ' + repr(img_data_mappings[neighbor]))
+    print()
+    print()
+    '''
     def safe_div(num1, num2):
         if num2 == 0:
-            return num1 / .0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001
+            return num1 / (10 ** -40)
         else:
             return num1 / num2
 
@@ -209,13 +224,31 @@ def calc_update(img, loc, G):
 # Perform location estimate update algorithm
 for _ in range(NUM_ITERATIONS):
     new_img_data_mappings = img_data_mappings.copy()
-    for test_img in test_data:
+    for test_img in all_data:
         img_id = test_img['watchlink']
         loc = img_data_mappings[img_id]
         lat, lon, var = calc_update(img_id, loc, G)
         new_img_data_mappings[img_id] = Location(lat, lon, var)
     img_data_mappings = new_img_data_mappings
+img = 'http://flickr.com/photos/51035718466@N01/2536809519'
+'''
+for neighbor in G.neighbors(img):
+    print(neighbor + ': ' + repr(img_data_mappings[neighbor]))
+    for test_img in all_data:
+        if neighbor == test_img['watchlink']:
+            print(test_img['keywords'].split(', '))
+            break
 
+print(img + ': ' + repr(img_data_mappings[img]))
+for test_img in test_data + train_data:
+    if img == test_img['watchlink']:
+        print(test_img['keywords'].split(', '))
+        break
+
+
+print()
+print()
+'''
 # Calculate error
 median_error_finder = MedianFinder()
 one_km_count = 0
@@ -232,8 +265,7 @@ for test_img in test_data:
     median_error_finder.add(error)
     if error < 1:
         one_km_count += 1
-        print(img_result_loc)
-        print()
+        print(img_id + ': ' + repr(img_result_loc))
     elif error < 5:
         five_km_count += 1
     elif error < 10:
@@ -249,6 +281,6 @@ print('Less than 5 km: {0}'.format(five_km_count))
 print('Less than 10 km: {0}'.format(ten_km_count))
 print('Less than 100 km: {0}'.format(hundred_km_count))
 print('Less than 1000 km: {0}'.format(thousand_km_count))
-print('Greater than 100 km: {0}'.format(other_count))
+print('Greater than 1000 km: {0}'.format(other_count))
 print('Med error: {0}'.format(median_error_finder.med()))
 

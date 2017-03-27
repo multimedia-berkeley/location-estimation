@@ -18,6 +18,7 @@ class GraphTest(unittest.TestCase):
         G.add_edge('a', 'b')
         G.add_edge('c', 'a')
         G.add_edge('b', 'c')
+        G.add_edge('b', 'd')
 
         a_neighbors = ['b', 'c']
         count = 0
