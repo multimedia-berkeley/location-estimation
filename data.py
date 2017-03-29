@@ -1,24 +1,35 @@
 from utils import *
 
+class DataFile(object):
+    def __init__(self, name, prefix, entry_delimiter, field_delimiter, tag_delimiter, field_names):
+        self.name = name
+        self.prefix = prefix
+        self.entry_delimiter = entry_delimiter
+        self.field_delimiter = field_delimiter
+        self.tag_delimiter = tag_delimiter
+        self.field_names = field_names
+
 def get():
-    DATA_ENTRY_SEPARATOR = ' @#|#@ '
-    PATH_PREFIX = '/Users/daniel/Developer/ICME/'
-    FILE_NAME = 'placing2011_train'
+    files = []
 
-    with open(PATH_PREFIX + FILE_NAME, 'r') as myfile:
-        raw_data = myfile.read().split('\n')
-
-    entry_keys = ['title', 'keywords', 'description', 'userID', 'idk what this is', 'userlocation', 'latitude', 'longitude', 'region', 'locality', 'country', 'watchlink']
+    field_names = ['title', 'keywords', 'description', 'userID', 'idk what this is', 'userlocation', 'latitude', 'longitude', 'region', 'locality', 'country', 'watchlink']
+    files.append(DataFile('placing2011_train', '/Users/daniel/Developer/ICME/', '\n', ' @#|#@ ', ', ', field_names))
+    
     data = []
 
-    for i in range(len(raw_data)):
-        entry = raw_data[i].split(DATA_ENTRY_SEPARATOR)
-        if len(entry) < len(entry_keys):
-            continue
-        entry_dict = {}
-        for j in range(len(entry_keys)):
-            entry_dict[entry_keys[j]] = entry[j]
-        data.append(entry_dict)
+    for data_file in files:
+        with open(data_file.prefix + data_file.name, 'r') as f:
+            raw_data = f.read().split(data_file.entry_delimiter)
+
+
+        for i in range(len(raw_data)):
+            entry = raw_data[i].split(data_file.field_delimiter)
+            if len(entry) < len(data_file.field_names):
+                continue
+            entry_dict = {}
+            for j in range(len(data_file.field_names)):
+                entry_dict[data_file.field_names[j]] = entry[j]
+            data.append(entry_dict)
     return data
 
 def split(lst, proportion=0.5):
