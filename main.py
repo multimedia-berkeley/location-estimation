@@ -51,7 +51,7 @@ def process_train_tags(train_data):
     train_tag_counts = Counter()
     for train_img in train_data:
         lat, lon = float(train_img['latitude']), float(train_img['longitude'])
-        img_tags = train_img['keywords'].split(', ')
+        img_tags = train_img['tags']
         # Gather locations for each tag
         for tag in img_tags:
             if tag not in tag_locations:
@@ -90,7 +90,7 @@ def process_training_data(train_data, img_data_mappings, tag_approx_loc, train_t
 
     for train_img in train_data:
         img_id = train_img['watchlink']
-        img_tags = train_img['keywords'].split(', ')
+        img_tags = train_img['tags']
 
         # Initialize lat, lon, var values
         lat, lon = float(train_img['latitude']), float(train_img['longitude'])
@@ -114,7 +114,7 @@ def process_test_data(test_data, train_tag_counts, img_data_mappings, tag_approx
     # Process test data
     for test_img in test_data:
         img_id = test_img['watchlink']
-        img_tags = test_img['keywords'].split(', ')
+        img_tags = test_img['tags']
 
         # Count tags
         total_tag_counts.add_counts(img_tags)
@@ -139,11 +139,11 @@ for img_id in img_data_mappings:
 edge_count = 0
 for img1_i in range(len(all_data)):
     img1_id = all_data[img1_i]['watchlink']
-    img1_tags = set(all_data[img1_i]['keywords'].split(', '))
+    img1_tags = set(all_data[img1_i]['tags'])
 
     for img2_i in range(img1_i + 1, len(all_data)): # start at i+1 to ensure no duplicate pairs or self pairs
         img2_id = all_data[img2_i]['watchlink']
-        img2_tags = all_data[img2_i]['keywords'].split(', ')
+        img2_tags = all_data[img2_i]['tags']
         for tag in img2_tags:
             if total_tag_counts.get_count(tag) < DROP_EDGE_THRESHOLD and tag in img1_tags:
                 edge_count += 1

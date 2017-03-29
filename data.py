@@ -1,19 +1,23 @@
 from utils import *
 
 class DataFile(object):
-    def __init__(self, name, prefix, entry_delimiter, field_delimiter, tag_delimiter, field_names):
+    def __init__(self, name, prefix, entry_delimiter, field_delimiter, tag_delimiter, field_names, tag_field_name):
         self.name = name
         self.prefix = prefix
         self.entry_delimiter = entry_delimiter
         self.field_delimiter = field_delimiter
         self.tag_delimiter = tag_delimiter
         self.field_names = field_names
+        self.tag_field_name = tag_field_name
+
+    def is_tag_field_name(self, field_name):
+        return field_name == self.tag_field_name
 
 def get():
     files = []
 
-    field_names = ['title', 'keywords', 'description', 'userID', 'idk what this is', 'userlocation', 'latitude', 'longitude', 'region', 'locality', 'country', 'watchlink']
-    files.append(DataFile('placing2011_train', '/Users/daniel/Developer/ICME/', '\n', ' @#|#@ ', ', ', field_names))
+    field_names = ['title', 'tags', 'description', 'userID', 'idk what this is', 'userlocation', 'latitude', 'longitude', 'region', 'locality', 'country', 'watchlink']
+    files.append(DataFile('placing2011_train', '/Users/daniel/Developer/ICME/', '\n', ' @#|#@ ', ', ', field_names, 'tags'))
     
     data = []
 
@@ -28,7 +32,10 @@ def get():
                 continue
             entry_dict = {}
             for j in range(len(data_file.field_names)):
-                entry_dict[data_file.field_names[j]] = entry[j]
+                if data_file.is_tag_field_name(data_file.field_names[j]):
+                    entry_dict[data_file.field_names[j]] = entry[j].split(data_file.tag_delimiter)
+                else:
+                    entry_dict[data_file.field_names[j]] = entry[j]
             data.append(entry_dict)
     return data
 
