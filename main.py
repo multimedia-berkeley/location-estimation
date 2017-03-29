@@ -4,7 +4,7 @@ import data
 from utils import *
 
 all_data = data.get()
-all_data = data.filter(all_data, 'western_europe')
+all_data = data.filter(all_data, 'ca')
 print(len(all_data))
 #all_data = all_data[:0]  # TODO: delete later
 '''
@@ -17,7 +17,7 @@ all_data.append({'watchlink': 3, 'latitude': 90, 'longitude': 80, 'keywords': 'h
 '''
 train_data, test_data = data.split(all_data, 0.8)
 
-NUM_ITERATIONS = 20
+NUM_ITERATIONS = 0
 DROP_EDGE_THRESHOLD = len(all_data) * 0.1
 img_data_mappings = {}
 G = UndirectedGraph()
@@ -121,7 +121,7 @@ def process_test_data(test_data, train_tag_counts, img_data_mappings, tag_approx
    
         # Initialize lat, lon, and var
         min_var_loc = Location(37.7749, -122.4194, 15098163) # Approx lat/lon of SF, and approx var of tag 'iphone'
-        min_var_loc = Location(52.52, 13.405, 15098163) # Approx lat/lon of Berlin, and approx var of tag 'iphone'
+        #min_var_loc = Location(52.52, 13.405, 15098163) # Approx lat/lon of Berlin, and approx var of tag 'iphone'
         for tag in img_tags:
             if tag in tag_approx_loc and tag_approx_loc[tag].var < min_var_loc.var and train_tag_counts.get_count(tag) > .01 * len(train_data):
                 min_var_loc = tag_approx_loc[tag]
