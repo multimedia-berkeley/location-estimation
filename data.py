@@ -18,12 +18,34 @@ def get():
 
     field_names = ['title', 'tags', 'description', 'userID', 'idk what this is', 'userlocation', 'latitude', 'longitude', 'region', 'locality', 'country', 'watchlink']
     files.append(DataFile('placing2011_train', '/Users/daniel/Developer/ICME/', '\n', ' @#|#@ ', ', ', field_names, 'tags'))
+
+    field_names = ['userID', 'watchlink', 'geoData', 'tags', 'idk', 'idk']
+    files.append(DataFile('all.new.sample', '/Users/daniel/Developer/ICME/', '\n', ' : ', ' ', field_names, 'tags'))
     
     data = []
 
     for data_file in files:
+        print(data_file.name)
+        raw_data = []
         with open(data_file.prefix + data_file.name, 'r') as f:
-            raw_data = f.read().split(data_file.entry_delimiter)
+            possible_eof_count = 0
+            last_pos = -1
+            while possible_eof_count < 20:
+                #print('{0}, {1}'.format(last_pos, f.tell()))
+                if f.tell() <= last_pos:
+                    possible_eof_count += 1
+                else:
+                    possible_eof_count = 0
+                last_pos = f.tell()
+
+                try:
+                    line = f.readline()
+                    if line == '':
+                        continue
+                    raw_data.append(line)
+                except UnicodeDecodeError:
+                    pass
+            #raw_data = f.read().split(data_file.entry_delimiter)
 
 
         for i in range(len(raw_data)):
@@ -36,6 +58,12 @@ def get():
                     entry_dict[data_file.field_names[j]] = entry[j].split(data_file.tag_delimiter)
                 else:
                     entry_dict[data_file.field_names[j]] = entry[j]
+
+                if data_file.field_names[j] == 'geoData':
+                    geoData = entry_dict['geoData'].replace('GeoData[longitude=', '').replace('latitude=', '').replace('accuracy=', '').strip('[]').split()
+                    entry_dict['latitude'] = geoData[1]
+                    entry_dict['longitude'] = geoData[0]
+                    entry_dict['accuracy'] = geoData[2]
             data.append(entry_dict)
     return data
 
