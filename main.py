@@ -3,7 +3,11 @@ import numpy as np
 import data
 from utils import *
 
-all_data = data.get()
+#all_data = data.get()
+all_data = None
+with open('/Users/daniel/Developer/ICME/data', 'r') as f:
+    all_data = eval(f.read())
+    pass
 all_data = data.filter(all_data, 'ca')
 print(len(all_data))
 #all_data = all_data[:0]  # TODO: delete later
@@ -19,21 +23,21 @@ train_data, test_data = data.split(all_data, 0.8)
 
 NUM_ITERATIONS = 0
 DROP_EDGE_THRESHOLD = len(all_data) * 0.1
+LOCALITY_THRESHOLD = 1 # Locality of 'newyorkcity' is 0.057
 img_data_mappings = {}
 G = UndirectedGraph()
 
 print('Num iterations: {0}'.format(NUM_ITERATIONS))
 
-#def get_tag_approx_loc():
-#    tag_approx_loc = {}
-#    reader = csv.reader(open('tag_spatial_var.csv'), delimiter=",")
-#    for tag, lat, lon, var in reader:
-#        tag_approx_loc[tag] = Location(float(lat), float(lon), float(var))
-#    return tag_approx_loc
+def get_tag_locality():
+    locality_str = ''
+    with open('/Users/daniel/Developer/ICME/large_tag_weights.tsv', 'r') as f:
+        locality_str = f.read()
+    return eval(locality_str)
 
-#tag_approx_loc = get_tag_approx_loc()
+locality = get_tag_locality()
 
-def process_train_tags(train_data):
+def process_train_tags(train_data, locality):
     def get_avg(lst):
         if len(lst) == 0:
             return 0
@@ -52,6 +56,9 @@ def process_train_tags(train_data):
     for train_img in train_data:
         lat, lon = float(train_img['latitude']), float(train_img['longitude'])
         img_tags = train_img['tags']
+
+        remove_low_locality_tags(img_tags)
+
         # Gather locations for each tag
         for tag in img_tags:
             if tag not in tag_locations:
@@ -83,11 +90,28 @@ def process_train_tags(train_data):
                 tag_mean_loc[tag] = Location(avg_lat, avg_lon, var)
     return tag_mean_loc, train_tag_counts
 
-tag_approx_loc, train_tag_counts = process_train_tags(train_data)
+def remove_low_locality_tags(tags_list):
+    '''Drop low locality tags. Mutates original list'''
+    tags_to_remove = []
+    for tag in tags_list:
+        if tag not in locality:
+            tags_to_remove.append(tag)
+        else:
+            locality_score = locality[tag]
+            if type(locality_score) is tuple:
+                locality_score = locality_score[0]
+            if locality_score < LOCALITY_THRESHOLD: 
+                tags_to_remove.append(tag)
+    for tag in tags_to_remove:
+        tags_list.remove(tag)
+
+   
+
+tag_approx_loc, train_tag_counts = process_train_tags(train_data, locality)
 
 
 def process_training_data(train_data, img_data_mappings, tag_approx_loc, train_tag_counts):
-
+    tag_to_imgs = {}
     for train_img in train_data:
         img_id = train_img['watchlink']
         img_tags = train_img['tags']
@@ -98,17 +122,19 @@ def process_training_data(train_data, img_data_mappings, tag_approx_loc, train_t
         for tag in img_tags:
             if tag_approx_loc[tag].var < min_var and train_tag_counts.get_count(tag) > .01 * len(train_data):
                 min_var = tag_approx_loc[tag].var
-        #var = min([tag_approx_loc[tag].var for tag in img_tags])
+            
+            # Add img to tag_to_imgs
+            if tag not in tag_to_imgs:
+                tag_to_imgs[tag] = []
+            tag_to_imgs[tag].append(train_img['watchlink'])
+
         img_data_mappings[img_id] = Location(lat, lon, min_var)
+    return tag_to_imgs
     
 
-process_training_data(train_data, img_data_mappings, tag_approx_loc, train_tag_counts)
+tag_to_imgs = process_training_data(train_data, img_data_mappings, tag_approx_loc, train_tag_counts)
 
-#print(tag_approx_loc['newyork'])
-#print(tag_approx_loc['nyc'])
-#print(tag_approx_loc['timessquare'])
-#print(tag_approx_loc['manhattan'])
-def process_test_data(test_data, train_tag_counts, img_data_mappings, tag_approx_loc):
+def process_test_data(test_data, train_tag_counts, img_data_mappings, tag_approx_loc, tag_to_imgs):
     total_tag_counts = train_tag_counts.copy()
     
     # Process test data
@@ -116,19 +142,28 @@ def process_test_data(test_data, train_tag_counts, img_data_mappings, tag_approx
         img_id = test_img['watchlink']
         img_tags = test_img['tags']
 
+        remove_low_locality_tags(img_tags)
+
         # Count tags
         total_tag_counts.add_counts(img_tags)
    
         # Initialize lat, lon, and var
         min_var_loc = Location(37.7749, -122.4194, 15098163) # Approx lat/lon of SF, and approx var of tag 'iphone'
         #min_var_loc = Location(52.52, 13.405, 15098163) # Approx lat/lon of Berlin, and approx var of tag 'iphone'
+
         for tag in img_tags:
             if tag in tag_approx_loc and tag_approx_loc[tag].var < min_var_loc.var and train_tag_counts.get_count(tag) > .01 * len(train_data):
                 min_var_loc = tag_approx_loc[tag]
+
+            # Add img to tag_to_imgs
+            if tag not in tag_to_imgs:
+                tag_to_imgs[tag] = []
+            tag_to_imgs[tag].append(test_img['watchlink'])
+
         img_data_mappings[img_id] = min_var_loc
     return total_tag_counts
 
-total_tag_counts = process_test_data(test_data, train_tag_counts, img_data_mappings, tag_approx_loc)
+total_tag_counts = process_test_data(test_data, train_tag_counts, img_data_mappings, tag_approx_loc, tag_to_imgs)
 
 # Add vertices to graph
 for img_id in img_data_mappings:
@@ -137,18 +172,14 @@ for img_id in img_data_mappings:
 
 # Add edges to graph
 edge_count = 0
-for img1_i in range(len(all_data)):
-    img1_id = all_data[img1_i]['watchlink']
-    img1_tags = set(all_data[img1_i]['tags'])
 
-    for img2_i in range(img1_i + 1, len(all_data)): # start at i+1 to ensure no duplicate pairs or self pairs
-        img2_id = all_data[img2_i]['watchlink']
-        img2_tags = all_data[img2_i]['tags']
-        for tag in img2_tags:
-            if total_tag_counts.get_count(tag) < DROP_EDGE_THRESHOLD and tag in img1_tags:
-                edge_count += 1
-                G.add_edge(img1_id, img2_id)
-                break
+for tag in tag_to_imgs:
+    neighbors = tag_to_imgs[tag]
+    for i in range(len(neighbors) - 1):
+        for j in range(i + 1, len(neighbors)):
+            edge_count += 1
+            G.add_edge(neighbors[i], neighbors[j])
+                
 
 print('Num edges: ' + str(edge_count))
 

@@ -16,13 +16,14 @@ class DataFile(object):
 def get():
     files = []
 
-    field_names = ['title', 'tags', 'description', 'userID', 'idk what this is', 'userlocation', 'latitude', 'longitude', 'region', 'locality', 'country', 'watchlink']
+    field_names = ['title', 'tags', 'description', 'userID', 'idk', 'userlocation', 'latitude', 'longitude', 'region', 'locality', 'country', 'watchlink']
     files.append(DataFile('placing2011_train', '/Users/daniel/Developer/ICME/', '\n', ' @#|#@ ', ', ', field_names, 'tags'))
 
     field_names = ['userID', 'watchlink', 'geoData', 'tags', 'idk', 'idk']
     files.append(DataFile('all.new.sample', '/Users/daniel/Developer/ICME/', '\n', ' : ', ' ', field_names, 'tags'))
     
     data = []
+    DROP_FIELDS = set(['title', 'description', 'idk', 'userlocation', 'region', 'locality', 'country'])
 
     for data_file in files:
         print(data_file.name)
@@ -54,6 +55,9 @@ def get():
                 continue
             entry_dict = {}
             for j in range(len(data_file.field_names)):
+                if data_file.field_names[j] in DROP_FIELDS:
+                    continue
+
                 if data_file.is_tag_field_name(data_file.field_names[j]):
                     entry_dict[data_file.field_names[j]] = entry[j].split(data_file.tag_delimiter)
                 else:
@@ -65,6 +69,8 @@ def get():
                     entry_dict['longitude'] = geoData[0]
                     entry_dict['accuracy'] = geoData[2]
             data.append(entry_dict)
+    with open('data', 'w') as f:
+        f.write(str(data))
     return data
 
 def split(lst, proportion=0.5):
