@@ -27,6 +27,20 @@ class GraphTest(unittest.TestCase):
             self.assertTrue(vert in a_neighbors)
         self.assertEqual(count, len(a_neighbors))
 
+    def test_big_graph(self):
+        G = UndirectedGraph()
+        for i in range(ord('a'), ord('z') + 1):
+            G.add_vertex(chr(i))
+
+        for _ in range(5000):
+            G.add_vertex(chr(random.randint(ord('a'), ord('z'))))
+
+        for _ in range(5000):
+            rand1 = random.randint(ord('a'), ord('z'))
+            rand2 = random.randint(ord('a'), ord('z'))
+            G.add_edge(rand1, rand2)
+
+
 class MedianTest(unittest.TestCase):
     
     def test_basic(self):

@@ -5,15 +5,37 @@ import numpy as np
 
 class Location(object):
     def __init__(self, lat=0.0, lon=0.0, var=9999999999999.0):
-        self.lat = lat
-        self.lon = lon
-        self.var = var
+        self.loc = np.array([lat, lon, var])
 
     def __repr__(self):
         return '(lat: {0}, lon: {1}, var: {2})'.format(self.lat, self.lon, self.var)
 
     def __eq__(self, other):
         return self.lat == other.lat and self.lon == other.lon and self.var == other.var
+
+    @property
+    def lat(self):
+        return self.loc[0]
+
+    @lat.setter
+    def lat(self, lat):
+        self.loc[0] = lat
+
+    @property
+    def lon(self):
+        return self.loc[1]
+    
+    @lon.setter
+    def lon(self, lon):
+        self.loc[1] = lon
+
+    @property
+    def var(self):
+        return self.loc[2]
+
+    @var.setter
+    def var(self, var):
+        self.loc[2] = var
 
     def copy(self):
         return Location(self.lat, self.lon, self.var)
@@ -105,7 +127,6 @@ class UndirectedGraph(object):
         self.backwards_mapping[self.next_vert_id] = label
 
         if self.next_vert_id >= self.adj_mtx.shape[0]:
-            # Increase adj matrix size
             self.expand_adj_mtx()
 
         self.next_vert_id += 1
