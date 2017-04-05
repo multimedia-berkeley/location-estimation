@@ -1,6 +1,8 @@
 import math
 from heapq import heappush, heappop
 
+import numpy as np
+
 class Location(object):
     def __init__(self, lat=0.0, lon=0.0, var=9999999999999.0):
         self.lat = lat
@@ -95,30 +97,33 @@ class UndirectedGraph(object):
         self.vertex_mappings = {}
         self.backwards_mapping = {}
         self.next_vert_id = 0
-        self.adj_mtx = [[0]] #Adjacency matrix
+        self.adj_mtx = np.zeros((1,1), dtype=bool) #Adjacency matrix
+        self.ADJ_MTX_EXPAND_FACTOR = 2
 
     def add_vertex(self, label):
         self.vertex_mappings[label] = self.next_vert_id
         self.backwards_mapping[self.next_vert_id] = label
 
-        if self.next_vert_id >= len(self.adj_mtx[0]):
-            # Double adj matrix size
-            delta_size = len(self.adj_mtx[0])
-            for row in self.adj_mtx:
-                row.extend([0] * delta_size)
-
-            for _ in range(delta_size):
-                self.adj_mtx.append([0] * len(self.adj_mtx[0]))
+        if self.next_vert_id >= self.adj_mtx.shape[0]:
+            # Increase adj matrix size
+            self.expand_adj_mtx()
 
         self.next_vert_id += 1
+
+    def expand_adj_mtx(self):
+        old_size = self.adj_mtx.shape[0]
+        new_size = old_size * self.ADJ_MTX_EXPAND_FACTOR
+        new_adj_mtx = np.zeros((new_size, new_size), dtype=bool)
+        new_adj_mtx[:old_size, :old_size] = self.adj_mtx
+        self.adj_mtx = new_adj_mtx
 
     def add_edge(self, label1, label2):
         if label1 in self.vertex_mappings and label2 in self.vertex_mappings:
             vert1_id = self.vertex_mappings[label1]
             vert2_id = self.vertex_mappings[label2]
 
-            self.adj_mtx[vert1_id][vert2_id] = 1
-            self.adj_mtx[vert2_id][vert1_id] = 1  # Since its an undirected graph
+            self.adj_mtx[vert1_id][vert2_id] = True
+            self.adj_mtx[vert2_id][vert1_id] = True  # Since its an undirected graph
             return 1
         else:
             return 0
@@ -130,7 +135,7 @@ class UndirectedGraph(object):
         neighbors = []
         vert_id = self.vertex_mappings[label]
         for i in range(len(self.adj_mtx[0])):
-           if self.adj_mtx[vert_id][i] == 1:
+           if self.adj_mtx[vert_id][i]:
                neighbors.append(self.backwards_mapping[i])
         return neighbors
 
