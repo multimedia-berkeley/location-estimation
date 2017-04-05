@@ -3,14 +3,14 @@ import numpy as np
 import data
 from utils import *
 
-#all_data = data.get()
+all_data = data.get()
 all_data = None
 with open('/Users/daniel/Developer/ICME/data', 'r') as f:
     all_data = eval(f.read())
-    pass
+
 all_data = data.filter(all_data, 'ca')
 print(len(all_data))
-#all_data = all_data[:0]  # TODO: delete later
+
 '''
 # Basic four node test
 all_data = []
@@ -21,13 +21,13 @@ all_data.append({'watchlink': 3, 'latitude': 90, 'longitude': 80, 'keywords': 'h
 '''
 train_data, test_data = data.split(all_data, 0.8)
 
-NUM_ITERATIONS = 0
+MAX_ITERATIONS = 0
+CONVERGENCE_THRESHOLD = 0.00006288 # About the mean sqaured difference of 1km
 DROP_EDGE_THRESHOLD = len(all_data) * 0.1
 LOCALITY_THRESHOLD = 1 # Locality of 'newyorkcity' is 0.057
 img_data_mappings = {}
 G = UndirectedGraph()
 
-print('Num iterations: {0}'.format(NUM_ITERATIONS))
 
 def get_tag_locality():
     locality_str = ''
@@ -250,16 +250,27 @@ def calc_update(img, loc, G):
 
     mean = calc_mean()
     var = calc_var()
-    return mean[0], mean[1], var
+    delta_squared = ((loc.lat - mean[0])**2 + (loc.lon - mean[1])**2)/2
+    return mean[0], mean[1], var, delta_squared
 
 # Perform location estimate update algorithm
-for _ in range(NUM_ITERATIONS):
+mean_squared_change = 100 # Arbitrary number above CONVERGENCE_THRESHOLD
+num_iter = 0
+has_converged = True
+while mean_squared_change > CONVERGENCE_THRESHOLD:
+    if num_iter >= MAX_ITERATIONS:
+        has_converged = False
+        break
+    num_iter += 1
+
     new_img_data_mappings = img_data_mappings.copy()
-    for test_img in all_data:
+    mean_squared_change = 0
+    for iteration, test_img in enumerate(all_data):
         img_id = test_img['watchlink']
         loc = img_data_mappings[img_id]
-        lat, lon, var = calc_update(img_id, loc, G)
+        lat, lon, var, delta_squared = calc_update(img_id, loc, G)
         new_img_data_mappings[img_id] = Location(lat, lon, var)
+        mean_squared_change = mean_squared_change / (iteration+1) * iteration + (delta_squared / (iteration + 1))
     img_data_mappings = new_img_data_mappings
 img = 'http://flickr.com/photos/51035718466@N01/2536809519'
 '''
@@ -280,6 +291,8 @@ for test_img in test_data + train_data:
 print()
 print()
 '''
+print('Num iterations: {0}'.format(num_iter))
+print('Converged?: {0}'.format(has_converged))
 # Calculate error
 median_error_finder = MedianFinder()
 one_km_count = 0

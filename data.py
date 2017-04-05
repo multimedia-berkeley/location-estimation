@@ -1,3 +1,8 @@
+#-*- coding: utf-8 -*-
+import sys
+import codecs
+#reload(sys)
+#sys.setdefaultencoding("utf-8")
 from utils import *
 
 class DataFile(object):
@@ -17,7 +22,7 @@ def get():
     files = []
 
     field_names = ['title', 'tags', 'description', 'userID', 'idk', 'userlocation', 'latitude', 'longitude', 'region', 'locality', 'country', 'watchlink']
-    files.append(DataFile('placing2011_train', '/Users/daniel/Developer/ICME/', '\n', ' @#|#@ ', ', ', field_names, 'tags'))
+    #files.append(DataFile('placing2011_train', '/Users/daniel/Developer/ICME/', '\n', ' @#|#@ ', ', ', field_names, 'tags'))
 
     field_names = ['userID', 'watchlink', 'geoData', 'tags', 'idk', 'idk']
     files.append(DataFile('all.new.sample', '/Users/daniel/Developer/ICME/', '\n', ' : ', ' ', field_names, 'tags'))
@@ -28,7 +33,9 @@ def get():
     for data_file in files:
         print(data_file.name)
         raw_data = []
-        with open(data_file.prefix + data_file.name, 'r') as f:
+        #with open(data_file.prefix + data_file.name, 'r') as f:
+        with open(data_file.prefix + data_file.name, 'r', encoding='ISO-8859-1') as f:
+        #with codecs.open(data_file.prefix + data_file.name, 'r', encoding='utf-8') as f:
             possible_eof_count = 0
             last_pos = -1
             while possible_eof_count < 20:
@@ -44,7 +51,7 @@ def get():
                     if line == '':
                         continue
                     raw_data.append(line)
-                except UnicodeDecodeError:
+                except BufferError:
                     pass
             #raw_data = f.read().split(data_file.entry_delimiter)
 
@@ -69,8 +76,8 @@ def get():
                     entry_dict['longitude'] = geoData[0]
                     entry_dict['accuracy'] = geoData[2]
             data.append(entry_dict)
-    with open('data', 'w') as f:
-        f.write(str(data))
+    #with open('data', 'w') as f:
+    #    f.write(str(data))
     return data
 
 def split(lst, proportion=0.5):
