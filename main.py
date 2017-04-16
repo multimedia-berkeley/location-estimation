@@ -1,19 +1,18 @@
 import argparse
 import csv
-from multiprocessing import Process, Manager
-
+import multiprocessing as mp
 import numpy as np
 
 import data
 from utils import *
 
-def main(MAX_ITERATIONS=0):
+def main(MAX_ITERATIONS=20):
     #all_data = data.get()
     all_data = None
     with open('/Users/daniel/Developer/ICME/data', 'r') as f:
         all_data = eval(f.read())
 
-    all_data = data.filter(all_data, 'ca')
+    #all_data = data.filter(all_data, 'ca')
     print(len(all_data))
 
     train_data, test_data = data.split(all_data, 0.8)
@@ -57,38 +56,26 @@ def main(MAX_ITERATIONS=0):
             break
         num_iter += 1
 
-        new_img_data_mappings = img_data_mappings.copy()
-        mean_squared_change = 0
-        
         global update
-        def update(test_data, new_img_data_mappings):
-            for test_img in test_data:
+        def update(test_img):
                 img_id = test_img['watchlink']
                 loc = img_data_mappings[img_id]
                 lat, lon, var, delta_squared = calc_update(img_id, loc, G, img_data_mappings)
-                new_img_data_mappings[img_id] = Location(lat, lon, var)
-            #mean_squared_change = mean_squared_change / (iteration+1) * iteration + (delta_squared / (iteration + 1))
+                return Location(lat, lon, var), delta_squared
  
-
-        with Manager() as manager:
-            new_img_data_mappings = manager.dict()
-            test_split_index = round(len(test_data) / 2)
-            p1 = Process(target=update, args=(test_data[:test_split_index], new_img_data_mappings))
-            p2 = Process(target=update, args=(test_data[test_split_index:], new_img_data_mappings))
-            p1.start()
-            p2.start()
-            p1.join()
-            p2.join()
-            img_data_mappings.update(new_img_data_mappings)
-        '''
-        for iteration, test_img in enumerate(test_data):
-            img_id = test_img['watchlink']
-            loc = img_data_mappings[img_id]
-            lat, lon, var, delta_squared = calc_update(img_id, loc, G, img_data_mappings)
-            new_img_data_mappings[img_id] = Location(lat, lon, var)
-            mean_squared_change = mean_squared_change / (iteration+1) * iteration + (delta_squared / (iteration + 1))
+        new_img_data_mappings = img_data_mappings.copy()
+        with mp.Pool(mp.cpu_count()) as p:
+            updates = p.map(update, test_data)
+            mean_squared_change = 0
+            for i, test_img in enumerate(test_data):
+                img_id = test_img['watchlink']
+                new_loc = updates[i][0]
+                delta_squared = updates[i][1]
+                new_img_data_mappings[img_id] = new_loc
+                mean_squared_change = mean_squared_change / (i+1) * i + (delta_squared / (i + 1))
+        
         img_data_mappings = new_img_data_mappings
-        '''
+
     print('Num iterations: {0}'.format(num_iter))
     print('Converged?: {0}'.format(has_converged))
     # Calculate error
