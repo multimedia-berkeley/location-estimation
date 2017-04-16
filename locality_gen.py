@@ -4,13 +4,12 @@ from utils import *
 
 
 def main():
-    all_data = data.get()
-    all_data = remove_test_data(all_data)
+    train, test = data.get_train_test()
    
     metadata = []
     photo = []
     uid = []
-    for img in all_data:
+    for img in train:
         pictureID = img['watchlink'].strip()
         tags = img['tags']
         lat, lon = img['latitude'], img['longitude']
@@ -20,9 +19,9 @@ def main():
         photo.append('0\t0\t{0}\t{1}'.format(lon, lat))
         uid.append('0\t{0}'.format(userID))
 
-    write_to_file(metadata, 'large_train_metadata')
-    write_to_file(photo, 'large_placing_train_photo')
-    write_to_file(uid, 'large_train_uid')
+    write_to_file(metadata, 'train_metadata')
+    write_to_file(photo, 'train_photo')
+    write_to_file(uid, 'train_uid')
 
 
 def remove_test_data(all_data):

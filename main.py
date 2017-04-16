@@ -1,21 +1,26 @@
 import argparse
 import csv
 import multiprocessing as mp
+import os.path
+import pickle
+
 import numpy as np
 
 import data
 from utils import *
 
 def main(MAX_ITERATIONS=20):
-    #all_data = data.get()
-    all_data = None
-    with open('/Users/daniel/Developer/ICME/data', 'r') as f:
-        all_data = eval(f.read())
-
-    #all_data = data.filter(all_data, 'ca')
-    print(len(all_data))
-
-    train_data, test_data = data.split(all_data, 0.8)
+    if os.path.isfile('/int_train') and os.path.isfile('int_test'):
+        with open('int_train.pickle', 'rb') as f:
+            train_data = pickle.load(f)
+        with open('int_test.pickle', 'rb') as f:
+            test_data = pickle.load(f)
+    else:
+        train_data, test_data = data.get_train_test()
+        with open('int_train.pickle', 'wb') as f:
+            pickle.dump(train_data, f)
+        with open('int_test.pickle', 'wb') as f:
+            pickle.dump(test_data, f)
 
     CONVERGENCE_THRESHOLD = 0.00006288 # About the mean sqaured difference of 1km
     LOCALITY_THRESHOLD = 1 # Locality of 'newyorkcity' is 0.057
@@ -117,7 +122,7 @@ def main(MAX_ITERATIONS=20):
 
 def get_tag_locality():
     locality_str = ''
-    with open('/Users/daniel/Developer/ICME/large_tag_weights.tsv', 'r') as f:
+    with open('/Users/daniel/Developer/ICME/tagweights.tsv', 'r') as f:
         locality_str = f.read()
     return eval(locality_str)
 

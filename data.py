@@ -18,43 +18,33 @@ class DataFile(object):
     def is_tag_field_name(self, field_name):
         return field_name == self.tag_field_name
 
-def get():
-    files = []
+def get_train_test():
+    train_files = []
+    field_names = ['userID', 'watchlink', 'geoData', 'tags', 'idk', 'idk']
+    train_files.append(DataFile('train2012', './', '\n', ' : ', ' ', field_names, 'tags'))
+    train_data = get(train_files)
+
+    test_files = []
+    field_names = ['userID', 'watchlink', 'geoData', 'tags', 'idk', 'idk']
+    test_files.append(DataFile('test2012', './', '\n', ' : ', ' ', field_names, 'tags'))
+    test_data = get(test_files)
+    return train_data, test_data
+
+
+
+def get(files=[]):
 
     field_names = ['title', 'tags', 'description', 'userID', 'idk', 'userlocation', 'latitude', 'longitude', 'region', 'locality', 'country', 'watchlink']
     #files.append(DataFile('placing2011_train', '/Users/daniel/Developer/ICME/', '\n', ' @#|#@ ', ', ', field_names, 'tags'))
 
-    field_names = ['userID', 'watchlink', 'geoData', 'tags', 'idk', 'idk']
-    files.append(DataFile('all.new.sample', '/Users/daniel/Developer/ICME/', '\n', ' : ', ' ', field_names, 'tags'))
-    
     data = []
     DROP_FIELDS = set(['title', 'description', 'idk', 'userlocation', 'region', 'locality', 'country'])
 
     for data_file in files:
         print(data_file.name)
         raw_data = []
-        #with open(data_file.prefix + data_file.name, 'r') as f:
         with open(data_file.prefix + data_file.name, 'r', encoding='ISO-8859-1') as f:
-        #with codecs.open(data_file.prefix + data_file.name, 'r', encoding='utf-8') as f:
-            possible_eof_count = 0
-            last_pos = -1
-            while possible_eof_count < 20:
-                #print('{0}, {1}'.format(last_pos, f.tell()))
-                if f.tell() <= last_pos:
-                    possible_eof_count += 1
-                else:
-                    possible_eof_count = 0
-                last_pos = f.tell()
-
-                try:
-                    line = f.readline()
-                    if line == '':
-                        continue
-                    raw_data.append(line)
-                except BufferError:
-                    pass
-            #raw_data = f.read().split(data_file.entry_delimiter)
-
+            raw_data = f.read().split('\n')
 
         for i in range(len(raw_data)):
             entry = raw_data[i].split(data_file.field_delimiter)
@@ -76,8 +66,6 @@ def get():
                     entry_dict['longitude'] = geoData[0]
                     entry_dict['accuracy'] = geoData[2]
             data.append(entry_dict)
-    #with open('data', 'w') as f:
-    #    f.write(str(data))
     return data
 
 def split(lst, proportion=0.5):
