@@ -1,4 +1,5 @@
 import math
+from time import time
 from heapq import heappush, heappop
 
 import numpy as np
@@ -121,6 +122,7 @@ class UndirectedGraph(object):
         self.next_vert_id = 0
         self.adj_mtx = np.zeros((1,1), dtype=bool) #Adjacency matrix
         self.ADJ_MTX_EXPAND_FACTOR = 2
+        self.num_edges = 0
 
     def add_vertex(self, label):
         self.vertex_mappings[label] = self.next_vert_id
@@ -145,6 +147,7 @@ class UndirectedGraph(object):
 
             self.adj_mtx[vert1_id][vert2_id] = True
             self.adj_mtx[vert2_id][vert1_id] = True  # Since its an undirected graph
+            self.num_edges += 1
             return 1
         else:
             return 0
@@ -159,6 +162,14 @@ class UndirectedGraph(object):
            if self.adj_mtx[vert_id][i]:
                neighbors.append(self.backwards_mapping[i])
         return neighbors
+
+
+class Timer(object):
+    def __init__(self):
+        self.t0 = time()
+    
+    def time(self):
+        return time() - self.t0
 
 
 class MedianFinder(object):
