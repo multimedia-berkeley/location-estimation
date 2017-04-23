@@ -23,9 +23,9 @@ def main(MAX_ITERATIONS=20):
 
     preprocess_timer = Timer()
     locality = get_tag_locality()
-    tag_approx_loc, train_tag_counts = process_train_tags(train_data, locality)
-    tag_to_imgs = process_training_data(train_data, img_data_mappings, tag_approx_loc, train_tag_counts)
-    total_tag_counts = process_test_data(test_data, train_data, train_tag_counts, img_data_mappings, tag_approx_loc, tag_to_imgs, locality)
+    tag_approx_loc = process_train_tags(train_data, locality)
+    tag_to_imgs = process_training_data(train_data, img_data_mappings, tag_approx_loc)
+    process_test_data(test_data, train_data, img_data_mappings, tag_approx_loc, tag_to_imgs, locality)
     output_log.append('Took {0}s to preprocess the data'.format(preprocess_timer.time()))
 
     create_graph_timer = Timer()
@@ -94,8 +94,7 @@ def process_train_tags(train_data, locality):
             total += (n-avg)*(n-avg)
         return total / len(l)
     
-    tag_locations = {}
-    train_tag_counts = Counter()
+    locations_by_tag = {}
     for train_img in train_data:
         lat, lon = float(train_img['latitude']), float(train_img['longitude'])
         img_tags = train_img['tags']
@@ -104,16 +103,13 @@ def process_train_tags(train_data, locality):
 
         # Gather locations for each tag
         for tag in img_tags:
-            if tag not in tag_locations:
-                tag_locations[tag] = []
-            tag_locations[tag].append(Location(lat, lon))
+            if tag not in locations_by_tag:
+                locations_by_tag[tag] = []
+            locations_by_tag[tag].append(Location(lat, lon))
 
-        # Count tags
-        train_tag_counts.add_counts(img_tags)
-    
     # Get average loc and spatial var for each tag
     tag_mean_loc = {}
-    for tag, locations in tag_locations.items():
+    for tag, locations in locations_by_tag.items():
         lst_lat = []
         lst_lon = []
         
@@ -131,7 +127,7 @@ def process_train_tags(train_data, locality):
                 avg_dist = get_avg(list_distance)
                 var = get_var(list_distance, avg_dist)
                 tag_mean_loc[tag] = Location(avg_lat, avg_lon, var)
-    return tag_mean_loc, train_tag_counts
+    return tag_mean_loc
 
 
 def remove_low_locality_tags(locality, tags_list):
@@ -151,7 +147,7 @@ def remove_low_locality_tags(locality, tags_list):
         tags_list.remove(tag)
 
 
-def process_training_data(train_data, img_data_mappings, tag_approx_loc, train_tag_counts):
+def process_training_data(train_data, img_data_mappings, tag_approx_loc):
     tag_to_imgs = {}
     for train_img in train_data:
         img_id = train_img['watchlink']
@@ -173,8 +169,7 @@ def process_training_data(train_data, img_data_mappings, tag_approx_loc, train_t
     return tag_to_imgs
  
 
-def process_test_data(test_data, train_data, train_tag_counts, img_data_mappings, tag_approx_loc, tag_to_imgs, locality):
-    total_tag_counts = train_tag_counts.copy()
+def process_test_data(test_data, train_data, img_data_mappings, tag_approx_loc, tag_to_imgs, locality):
     
     # Process test data
     for test_img in test_data:
@@ -183,9 +178,6 @@ def process_test_data(test_data, train_data, train_tag_counts, img_data_mappings
 
         remove_low_locality_tags(locality, img_tags)
 
-        # Count tags
-        total_tag_counts.add_counts(img_tags)
-   
         # Initialize lat, lon, and var
         min_var_loc = Location(37.7749, -122.4194, 15098163) # Approx lat/lon of SF, and approx var of tag 'iphone'
         #min_var_loc = Location(52.52, 13.405, 15098163) # Approx lat/lon of Berlin, and approx var of tag 'iphone'
@@ -200,8 +192,6 @@ def process_test_data(test_data, train_data, train_tag_counts, img_data_mappings
             tag_to_imgs[tag].append(test_img['watchlink'])
 
         img_data_mappings[img_id] = min_var_loc
-    return total_tag_counts
-
 
 def create_graph(train_data, test_data, tag_to_imgs):
     def add_vertices():
