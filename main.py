@@ -93,41 +93,47 @@ def process_train_tags(train_data, locality):
             n = float(n)
             total += (n-avg)*(n-avg)
         return total / len(l)
-    
-    locations_by_tag = {}
-    for train_img in train_data:
-        lat, lon = float(train_img['latitude']), float(train_img['longitude'])
-        img_tags = train_img['tags']
 
-        remove_low_locality_tags(locality, img_tags)
+    def get_locations_by_tag():    
+        locations_by_tag = {}
+        for train_img in train_data:
+            loc = Location(float(train_img['latitude']), float(train_img['longitude']))
+            img_tags = train_img['tags']
 
-        # Gather locations for each tag
-        for tag in img_tags:
-            if tag not in locations_by_tag:
-                locations_by_tag[tag] = []
-            locations_by_tag[tag].append(Location(lat, lon))
+            for tag in img_tags:
+                if tag not in locations_by_tag:
+                    locations_by_tag[tag] = []
+                locations_by_tag[tag].append(loc)
+        return locations_by_tag
 
-    # Get average loc and spatial var for each tag
-    tag_mean_loc = {}
-    for tag, locations in locations_by_tag.items():
-        lst_lat = []
-        lst_lon = []
+    def get_mean_loc_by_tag(locs_by_tag):
+        tag_mean_loc = {}
+        for tag, locations in locs_by_tag.items():
+            lst_lat = []
+            lst_lon = []
+            
+            for loc in locations:
+                lst_lat.append(loc.lat)
+                lst_lon.append(loc.lon)
+                avg_lat = get_avg(lst_lat)
+                avg_lon = get_avg(lst_lon)
+
+                num_point = len(lst_lat)
+                list_distance = []
+                for i in range(num_point):
+                    distance = Location.dist(Location(avg_lat, avg_lon), Location(lst_lat[i], lst_lon[i]))
+                    list_distance.append(distance)
+                    avg_dist = get_avg(list_distance)
+                    var = get_var(list_distance, avg_dist)
+                    tag_mean_loc[tag] = Location(avg_lat, avg_lon, var)
+        return tag_mean_loc
         
-        for loc in locations:
-            lst_lat.append(loc.lat)
-            lst_lon.append(loc.lon)
-            avg_lat = get_avg(lst_lat)
-            avg_lon = get_avg(lst_lon)
+    for img in train_data:
+        remove_low_locality_tags(locality, img['tags'])
+        
+    locations_by_tag = get_locations_by_tag()
 
-            num_point = len(lst_lat)
-            list_distance = []
-            for i in range(num_point):
-                distance = Location.dist(Location(avg_lat, avg_lon), Location(lst_lat[i], lst_lon[i]))
-                list_distance.append(distance)
-                avg_dist = get_avg(list_distance)
-                var = get_var(list_distance, avg_dist)
-                tag_mean_loc[tag] = Location(avg_lat, avg_lon, var)
-    return tag_mean_loc
+    return get_mean_loc_by_tag(locations_by_tag)
 
 
 def remove_low_locality_tags(locality, tags_list):
