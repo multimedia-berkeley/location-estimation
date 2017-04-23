@@ -4,7 +4,7 @@ from utils import *
 
 
 def main():
-    train, test = data.get_train_test()
+    train, test = data.split(data.get(), 0.8)
    
     metadata = []
     photo = []
