@@ -41,7 +41,6 @@ def get(files=[]):
     DROP_FIELDS = set(['title', 'description', 'idk', 'userlocation', 'region', 'locality', 'country'])
 
     for data_file in files:
-        print(data_file.name)
         raw_data = []
         with open(data_file.prefix + data_file.name, 'r', encoding='ISO-8859-1') as f:
             raw_data = f.read().split('\n')

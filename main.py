@@ -13,11 +13,10 @@ from utils import *
 
 def main(MAX_ITERATIONS=20):
     main_timer = Timer()
-    output_log = []
 
     data_fetch_timer = Timer()
     train_data, test_data = get_data()
-    output_log.append('Took {0}s to parse the data'.format(data_fetch_timer.time()))
+    print('Took {0}s to parse the data.'.format(data_fetch_timer.time()))
 
     loc_by_img = {}
 
@@ -26,19 +25,19 @@ def main(MAX_ITERATIONS=20):
     mean_loc_by_tag = process_train_tags(train_data, locality)
     train_imgs_by_tag = process_training_data(train_data, loc_by_img, mean_loc_by_tag)
     test_imgs_by_tag = process_test_data(test_data, loc_by_img, mean_loc_by_tag, locality)
-    output_log.append('Took {0}s to preprocess the data'.format(preprocess_timer.time()))
+    print('Took {0}s to preprocess the data.'.format(preprocess_timer.time()))
 
     create_graph_timer = Timer()
     G = create_graph(train_data, test_data, train_imgs_by_tag, test_imgs_by_tag)
-    output_log.append('Took {0}s to create the graph'.format(create_graph_timer.time()))
+    print('Took {0}s to create the graph.'.format(create_graph_timer.time()))
                
     update_timer = Timer()
     loc_by_img, num_iter, has_converged = run_update(G, test_data, loc_by_img, MAX_ITERATIONS)
-    output_log.append('Took {0}s to perform the update'.format(update_timer.time()))
-    output_log.append('Total runtime: {0}'.format(main_timer.time()))
+    print('Took {0}s to apply the update algorithm.'.format(update_timer.time()))
+    print('Total runtime: {0}s.'.format(main_timer.time()))
 
     errors = calc_errors(test_data, loc_by_img)
-
+    print('')
     print('Num train points: {0}'.format(len(train_data)))
     print('Num test points: {0}'.format(len(test_data)))
     print('Num edges: {0}'.format(G.num_edges))
@@ -50,8 +49,6 @@ def main(MAX_ITERATIONS=20):
     print('Less than 100 km: {0}'.format(errors[3]))
     print('Less than 1000 km: {0}'.format(errors[4]))
     print('Greater than 1000 km: {0}'.format(errors[5]))
-    print('')
-    print('\n'.join(output_log))
 
 
 def get_data():
