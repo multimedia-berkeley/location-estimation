@@ -72,7 +72,7 @@ def get_data():
 
 def get_tag_locality():
     locality_str = ''
-    with open('/Users/daniel/Developer/ICME/tagweights.tsv', 'r') as f:
+    with open('./tagweights.tsv', 'r') as f:
         locality_str = f.read()
     return eval(locality_str)
 

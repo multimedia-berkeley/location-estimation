@@ -35,7 +35,7 @@ def get_train_test():
 def get(files=[]):
 
     field_names = ['title', 'tags', 'description', 'userID', 'idk', 'userlocation', 'latitude', 'longitude', 'region', 'locality', 'country', 'watchlink']
-    files.append(DataFile('placing2011_train', '/Users/daniel/Developer/ICME/', '\n', ' @#|#@ ', ', ', field_names, 'tags'))
+    files.append(DataFile('placing2011_train', './', '\n', ' @#|#@ ', ', ', field_names, 'tags'))
 
     data = []
     DROP_FIELDS = set(['title', 'description', 'idk', 'userlocation', 'region', 'locality', 'country'])
