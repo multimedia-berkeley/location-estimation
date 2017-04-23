@@ -110,22 +110,23 @@ def process_train_tags(train_data, locality):
         tag_mean_loc = {}
         for tag, locations in locs_by_tag.items():
             lst_lat = []
-            lst_lon = []
-            
+            lst_lon = [] 
             for loc in locations:
                 lst_lat.append(loc.lat)
                 lst_lon.append(loc.lon)
-                avg_lat = get_avg(lst_lat)
-                avg_lon = get_avg(lst_lon)
+            lst_lat, lst_lon = np.array(lst_lat), np.array(lst_lon)
+            
+            avg_lat = np.mean(lst_lat)
+            avg_lon = np.mean(lst_lon)
+            avg_loc = Location(avg_lat, avg_lon)
 
-                num_point = len(lst_lat)
-                list_distance = []
-                for i in range(num_point):
-                    distance = Location.dist(Location(avg_lat, avg_lon), Location(lst_lat[i], lst_lon[i]))
-                    list_distance.append(distance)
-                    avg_dist = get_avg(list_distance)
-                    var = get_var(list_distance, avg_dist)
-                    tag_mean_loc[tag] = Location(avg_lat, avg_lon, var)
+            list_distance = []
+            for i in range(len(lst_lat)):
+                dist = Location.dist(avg_loc, Location(lst_lat[i], lst_lon[i]))
+                list_distance.append(dist)
+            avg_dist = np.mean(np.array(list_distance))
+            var = get_var(list_distance, avg_dist)
+            tag_mean_loc[tag] = Location(avg_lat, avg_lon, var)
         return tag_mean_loc
         
     for img in train_data:
