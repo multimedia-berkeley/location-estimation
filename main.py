@@ -81,19 +81,6 @@ def get_tag_locality():
 
 
 def process_train_tags(train_data, locality):
-    def get_avg(lst):
-        if len(lst) == 0:
-            return 0
-        else:
-            return sum(lst)/len(lst)
-
-    def get_var(l, avg):
-        total = 0.0
-        for n in l:
-            n = float(n)
-            total += (n-avg)*(n-avg)
-        return total / len(l)
-
     def get_locations_by_tag():    
         locations_by_tag = {}
         for train_img in train_data:
@@ -125,7 +112,7 @@ def process_train_tags(train_data, locality):
                 dist = Location.dist(avg_loc, Location(lst_lat[i], lst_lon[i]))
                 list_distance.append(dist)
             avg_dist = np.mean(np.array(list_distance))
-            var = get_var(list_distance, avg_dist)
+            var = np.var(list_distance)
             tag_mean_loc[tag] = Location(avg_lat, avg_lon, var)
         return tag_mean_loc
         
