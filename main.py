@@ -23,13 +23,13 @@ def main(MAX_ITERATIONS=20):
 
     preprocess_timer = Timer()
     locality = get_tag_locality()
-    tag_approx_loc = process_train_tags(train_data, locality)
-    tag_to_imgs = process_training_data(train_data, img_data_mappings, tag_approx_loc)
-    process_test_data(test_data, train_data, img_data_mappings, tag_approx_loc, tag_to_imgs, locality)
+    mean_loc_by_tag = process_train_tags(train_data, locality)
+    train_imgs_by_tag = process_training_data(train_data, img_data_mappings, mean_loc_by_tag)
+    test_imgs_by_tag = process_test_data(test_data, img_data_mappings, mean_loc_by_tag, locality)
     output_log.append('Took {0}s to preprocess the data'.format(preprocess_timer.time()))
 
     create_graph_timer = Timer()
-    G = create_graph(train_data, test_data, tag_to_imgs)
+    G = create_graph(train_data, test_data, train_imgs_by_tag, test_imgs_by_tag)
     output_log.append('Took {0}s to create the graph'.format(create_graph_timer.time()))
                
     update_timer = Timer()
@@ -172,8 +172,8 @@ def process_training_data(train_data, img_data_mappings, tag_approx_loc):
     return tag_to_imgs
  
 
-def process_test_data(test_data, train_data, img_data_mappings, tag_approx_loc, tag_to_imgs, locality):
-    
+def process_test_data(test_data, img_data_mappings, tag_approx_loc, locality):
+    test_imgs_by_tag = {}
     # Process test data
     for test_img in test_data:
         img_id = test_img['watchlink']
@@ -189,32 +189,45 @@ def process_test_data(test_data, train_data, img_data_mappings, tag_approx_loc, 
             if tag in tag_approx_loc and tag_approx_loc[tag].var < min_var_loc.var:
                 min_var_loc = tag_approx_loc[tag]
 
-            # Add img to tag_to_imgs
-            if tag not in tag_to_imgs:
-                tag_to_imgs[tag] = []
-            tag_to_imgs[tag].append(test_img['watchlink'])
+            # Add img to test_imgs_by_tag
+            if tag not in test_imgs_by_tag:
+                test_imgs_by_tag[tag] = []
+            test_imgs_by_tag[tag].append(test_img['watchlink'])
 
         img_data_mappings[img_id] = min_var_loc
+    return test_imgs_by_tag
 
-def create_graph(train_data, test_data, tag_to_imgs):
+
+def create_graph(train_data, test_data, train_imgs_by_tag, test_imgs_by_tag):
     def add_vertices():
         for img in train_data:
             G.add_vertex(img['watchlink'])
-
         for img in test_data:
             G.add_vertex(img['watchlink'])
+        '''
+        # For only adding necessary train images to the graph
+        for tag in test_imgs_by_tag:
+            if tag in train_imgs_by_tag:
+                for train_img in train_imgs_by_tag[tag]:
+                    G.add_vertex(train_img)
+        '''
     def add_edges():
-        for tag in tag_to_imgs:
-            neighbors = tag_to_imgs[tag]
-            for i in range(len(neighbors) - 1):
-                for j in range(i + 1, len(neighbors)):
-                    G.add_edge(neighbors[i], neighbors[j])
+        for tag in test_imgs_by_tag:
+            test_neighbors = test_imgs_by_tag[tag]
+            for i in range(len(test_neighbors) - 1):
+                for j in range(i+1, len(test_neighbors)):
+                    G.add_edge(test_neighbors[i], test_neighbors[j])
+            
+            if tag in train_imgs_by_tag:
+                for test_img in test_neighbors:
+                    for train_img in train_imgs_by_tag[tag]:
+                        G.add_edge(test_img, train_img)
 
     G = UndirectedGraph()
     add_vertices()
     add_edges()
-
     return G
+
 
 def run_update(G, test_data, img_data_mappings, MAX_ITERATIONS):
     CONVERGENCE_THRESHOLD = 0.00006288 # About the mean sqaured difference of 1km
