@@ -19,13 +19,13 @@ def main(MAX_ITERATIONS=20):
     train_data, test_data = get_data()
     output_log.append('Took {0}s to parse the data'.format(data_fetch_timer.time()))
 
-    img_data_mappings = {}
+    loc_by_img = {}
 
     preprocess_timer = Timer()
     locality = get_tag_locality()
     mean_loc_by_tag = process_train_tags(train_data, locality)
-    train_imgs_by_tag = process_training_data(train_data, img_data_mappings, mean_loc_by_tag)
-    test_imgs_by_tag = process_test_data(test_data, img_data_mappings, mean_loc_by_tag, locality)
+    train_imgs_by_tag = process_training_data(train_data, loc_by_img, mean_loc_by_tag)
+    test_imgs_by_tag = process_test_data(test_data, loc_by_img, mean_loc_by_tag, locality)
     output_log.append('Took {0}s to preprocess the data'.format(preprocess_timer.time()))
 
     create_graph_timer = Timer()
@@ -33,11 +33,11 @@ def main(MAX_ITERATIONS=20):
     output_log.append('Took {0}s to create the graph'.format(create_graph_timer.time()))
                
     update_timer = Timer()
-    img_data_mappings, num_iter, has_converged = run_update(G, test_data, img_data_mappings, MAX_ITERATIONS)
+    loc_by_img, num_iter, has_converged = run_update(G, test_data, loc_by_img, MAX_ITERATIONS)
     output_log.append('Took {0}s to perform the update'.format(update_timer.time()))
     output_log.append('Total runtime: {0}'.format(main_timer.time()))
 
-    errors = calc_errors(test_data, img_data_mappings)
+    errors = calc_errors(test_data, loc_by_img)
 
     print('Num train points: {0}'.format(len(train_data)))
     print('Num test points: {0}'.format(len(test_data)))
@@ -150,7 +150,7 @@ def remove_low_locality_tags(locality, tags_list):
         tags_list.remove(tag)
 
 
-def process_training_data(train_data, img_data_mappings, tag_approx_loc):
+def process_training_data(train_data, loc_by_img, tag_approx_loc):
     tag_to_imgs = {}
     for train_img in train_data:
         img_id = train_img['watchlink']
@@ -168,11 +168,11 @@ def process_training_data(train_data, img_data_mappings, tag_approx_loc):
                 tag_to_imgs[tag] = []
             tag_to_imgs[tag].append(train_img['watchlink'])
 
-        img_data_mappings[img_id] = Location(lat, lon, min_var)
+        loc_by_img[img_id] = Location(lat, lon, min_var)
     return tag_to_imgs
  
 
-def process_test_data(test_data, img_data_mappings, tag_approx_loc, locality):
+def process_test_data(test_data, loc_by_img, tag_approx_loc, locality):
     test_imgs_by_tag = {}
     # Process test data
     for test_img in test_data:
@@ -194,7 +194,7 @@ def process_test_data(test_data, img_data_mappings, tag_approx_loc, locality):
                 test_imgs_by_tag[tag] = []
             test_imgs_by_tag[tag].append(test_img['watchlink'])
 
-        img_data_mappings[img_id] = min_var_loc
+        loc_by_img[img_id] = min_var_loc
     return test_imgs_by_tag
 
 
@@ -229,7 +229,7 @@ def create_graph(train_data, test_data, train_imgs_by_tag, test_imgs_by_tag):
     return G
 
 
-def run_update(G, test_data, img_data_mappings, MAX_ITERATIONS):
+def run_update(G, test_data, loc_by_img, MAX_ITERATIONS):
     CONVERGENCE_THRESHOLD = 0.00006288 # About the mean sqaured difference of 1km
     mean_squared_change = 100 # Arbitrary number above CONVERGENCE_THRESHOLD
     num_iter = 0
@@ -243,11 +243,11 @@ def run_update(G, test_data, img_data_mappings, MAX_ITERATIONS):
         global update
         def update(test_img):
                 img_id = test_img['watchlink']
-                loc = img_data_mappings[img_id]
-                lat, lon, var, delta_squared = calc_update(img_id, loc, G, img_data_mappings)
+                loc = loc_by_img[img_id]
+                lat, lon, var, delta_squared = calc_update(img_id, loc, G, loc_by_img)
                 return Location(lat, lon, var), delta_squared
  
-        new_img_data_mappings = img_data_mappings.copy()
+        new_loc_by_img = loc_by_img.copy()
         with mp.Pool(mp.cpu_count()) as p:
             updates = p.map(update, test_data)
             mean_squared_change = 0
@@ -255,15 +255,15 @@ def run_update(G, test_data, img_data_mappings, MAX_ITERATIONS):
                 img_id = test_img['watchlink']
                 new_loc = updates[i][0]
                 delta_squared = updates[i][1]
-                new_img_data_mappings[img_id] = new_loc
+                new_loc_by_img[img_id] = new_loc
                 mean_squared_change = mean_squared_change / (i+1) * i + (delta_squared / (i + 1))
         
-        img_data_mappings = new_img_data_mappings
-    return img_data_mappings, num_iter, has_converged
+        loc_by_img = new_loc_by_img
+    return loc_by_img, num_iter, has_converged
 
 
 
-def calc_update(img, loc, G, img_data_mappings):
+def calc_update(img, loc, G, loc_by_img):
 
     def safe_div(num1, num2):
         if num2 == 0:
@@ -277,14 +277,14 @@ def calc_update(img, loc, G, img_data_mappings):
         
         summation = np.zeros(2)
         for neighbor in neighbors:
-            neighbor_loc = img_data_mappings[neighbor]
+            neighbor_loc = loc_by_img[neighbor]
             neighbor_lat_lon = np.array([neighbor_loc.lat, neighbor_loc.lon])
             summation = summation + safe_div(neighbor_lat_lon, neighbor_loc.var)
         numerator = safe_div(lat_lon, loc.var) + summation
 
         summation = 0
         for neighbor in neighbors:
-            neighbor_loc = img_data_mappings[neighbor]
+            neighbor_loc = loc_by_img[neighbor]
             summation += safe_div(1, neighbor_loc.var)
         denominator = safe_div(1, loc.var) + summation
 
@@ -296,7 +296,7 @@ def calc_update(img, loc, G, img_data_mappings):
 
         summation = 0
         for neighbor in neighbors:
-            neighbor_loc = img_data_mappings[neighbor]
+            neighbor_loc = loc_by_img[neighbor]
             summation += safe_div(1, neighbor_loc.var)
         denominator = safe_div(1, loc.var) + summation
 
@@ -308,7 +308,7 @@ def calc_update(img, loc, G, img_data_mappings):
     return mean[0], mean[1], var, delta_squared
 
 
-def calc_errors(test_data, img_data_mappings):
+def calc_errors(test_data, loc_by_img):
     # Calculate error
     one_km_count = 0
     five_km_count = 0
@@ -318,7 +318,7 @@ def calc_errors(test_data, img_data_mappings):
     other_count = 0
     for test_img in test_data:
         img_id = test_img['watchlink']
-        img_result_loc = img_data_mappings[img_id]
+        img_result_loc = loc_by_img[img_id]
         img_actual_loc = Location(float(test_img['latitude']), float(test_img['longitude']))
         error = Location.dist(img_result_loc, img_actual_loc)
         if error < 1:
