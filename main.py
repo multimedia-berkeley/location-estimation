@@ -143,7 +143,6 @@ def process_training_data(train_data, loc_by_img, tag_approx_loc):
             if tag_approx_loc[tag].var < min_var:
                 min_var = tag_approx_loc[tag].var
             
-            # Add img to tag_to_imgs
             if tag not in tag_to_imgs:
                 tag_to_imgs[tag] = []
             tag_to_imgs[tag].append(train_img['watchlink'])
@@ -154,7 +153,6 @@ def process_training_data(train_data, loc_by_img, tag_approx_loc):
 
 def process_test_data(test_data, loc_by_img, tag_approx_loc, locality):
     test_imgs_by_tag = {}
-    # Process test data
     for test_img in test_data:
         img_id = test_img['watchlink']
         img_tags = test_img['tags']
@@ -288,7 +286,6 @@ def calc_update(img, loc, G, loc_by_img):
 
 
 def calc_errors(test_data, loc_by_img):
-    # Calculate error
     one_km_count = 0
     five_km_count = 0
     ten_km_count = 0
@@ -325,7 +322,7 @@ if __name__ == '__main__':
             help='Use a large dataset.')
     parser.add_argument('--large', action='store_const', const=1,
             help='Use a large dataset.')
-    arguments = parser.parse_args() # pylint: disable=invalid-name
+    arguments = parser.parse_args()
     file_size = 'small'
     if arguments.small is None:
         arguments.small = 0
