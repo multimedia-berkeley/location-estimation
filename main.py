@@ -11,7 +11,7 @@ import data
 from utils import *
 
 
-def main(file_size, MAX_ITERATIONS=20):
+def main(file_size, MAX_ITERATIONS=99):
     main_timer = Timer()
 
     data_fetch_timer = Timer()
