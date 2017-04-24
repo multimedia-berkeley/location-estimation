@@ -1,10 +1,15 @@
+import argparse
+
 import numpy as np
+
 import data
 from utils import *
 
 
-def main():
-    train, test = data.split(data.get(), 0.8)
+def main(file_size):
+    data_funcs_by_size = {'small': data.get_small, 'medium': data.get_medium, 'large': data.get_large}
+    all_data = data_funcs_by_size[file_size]()
+    train, test = data.split(all_data, 0.8)
    
     metadata = []
     photo = []
@@ -19,19 +24,10 @@ def main():
         photo.append('0\t0\t{0}\t{1}'.format(lon, lat))
         uid.append('0\t{0}'.format(userID))
 
-    write_to_file(metadata, 'train_metadata')
-    write_to_file(photo, 'train_photo')
-    write_to_file(uid, 'train_uid')
+    write_to_file(metadata, file_size + '_train_metadata')
+    write_to_file(photo, file_size + '_train_photo')
+    write_to_file(uid, file_size + '_train_uid')
 
-
-def remove_test_data(all_data):
-    ca_all = data.filter(all_data, 'ca')
-    ca_train, ca_test = data.split(ca_all, 0.8)
-    ca_test_ids = set()
-    for entry in ca_test:
-        ca_test_ids.add(entry['watchlink'])
-
-    return [x for x in all_data if x['watchlink'] not in ca_test_ids]
 
 def write_to_file(lst, name):
     f = open(name, 'w')
@@ -39,6 +35,32 @@ def write_to_file(lst, name):
         f.write(item + '\n')
     f.close()
 
+
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-m', '--maxiter', nargs=1, type=int,
+            help='Max number of iterations to run.')
+    parser.add_argument('--small', action='store_const', const=1,
+            help='Use a large dataset.')
+    parser.add_argument('--medium', action='store_const', const=1,
+            help='Use a large dataset.')
+    parser.add_argument('--large', action='store_const', const=1,
+            help='Use a large dataset.')
+    arguments = parser.parse_args() # pylint: disable=invalid-name
+    file_size = 'small'
+    if arguments.small is None:
+        arguments.small = 0
+    else:
+        file_size = 'small'
+
+    if arguments.medium is None:
+        arguments.medium = 0
+    else:
+        file_size = 'medium'
+
+    if arguments.large is None:
+        arguments.large = 0
+    else:
+        file_size = 'large'
+    main(file_size)
 

@@ -11,11 +11,11 @@ import data
 from utils import *
 
 
-def main(MAX_ITERATIONS=20):
+def main(file_size, MAX_ITERATIONS=20):
     main_timer = Timer()
 
     data_fetch_timer = Timer()
-    train_data, test_data = get_data()
+    train_data, test_data = get_data(file_size)
     print('Took {0}s to parse the data.'.format(data_fetch_timer.time()))
 
     loc_by_img = {}
@@ -51,7 +51,7 @@ def main(MAX_ITERATIONS=20):
     print('Greater than 1000 km: {0}'.format(errors[5]))
 
 
-def get_data():
+def get_data(file_size):
     '''
     if os.path.isfile('/int_train') and os.path.isfile('int_test'):
         with open('int_train.pickle', 'rb') as f:
@@ -65,7 +65,8 @@ def get_data():
         with open('int_test.pickle', 'wb') as f:
             pickle.dump(test_data, f)
     '''
-    all_data = data.get()
+    data_funcs_by_size = {'small': data.get_small, 'medium': data.get_medium, 'large': data.get_large}
+    all_data = data_funcs_by_size[file_size]()
     train_data, test_data = data.split(all_data, 0.8)
     return train_data, test_data
 
@@ -336,9 +337,33 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--maxiter', nargs=1, type=int,
             help='Max number of iterations to run.')
+    parser.add_argument('--small', action='store_const', const=1,
+            help='Use a large dataset.')
+    parser.add_argument('--medium', action='store_const', const=1,
+            help='Use a large dataset.')
+    parser.add_argument('--large', action='store_const', const=1,
+            help='Use a large dataset.')
     arguments = parser.parse_args() # pylint: disable=invalid-name
-    if arguments.maxiter is None:
-        main()
+    file_size = 'small'
+    if arguments.small is None:
+        arguments.small = 0
     else:
-        main(arguments.maxiter[0])
+        file_size = 'small'
+
+    if arguments.medium is None:
+        arguments.medium = 0
+    else:
+        file_size = 'medium'
+
+    if arguments.large is None:
+        arguments.large = 0
+    else:
+        file_size = 'large'
+
+    if arguments.small + arguments.medium + arguments.large > 1:
+        raise Exception('Can only specify one time of dataset')
+    if arguments.maxiter is None:
+        main(file_size)
+    else:
+        main(file_size, arguments.maxiter[0])
 

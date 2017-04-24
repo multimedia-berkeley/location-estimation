@@ -31,14 +31,29 @@ def get_train_test():
     return train_data, test_data
 
 
-
-def get(files=[]):
-
-    field_names = ['title', 'tags', 'description', 'userID', 'idk', 'userlocation', 'latitude', 'longitude', 'region', 'locality', 'country', 'watchlink']
+def get_small():
+    files = []
+    field_names = ['IGNORE', 'tags', 'IGNORE', 'userID', 'IGNORE', 'IGNORE', 'latitude', 'longitude', 'IGNORE', 'IGNORE', 'IGNORE', 'watchlink']
     files.append(DataFile('placing2011_train', './', '\n', ' @#|#@ ', ', ', field_names, 'tags'))
+    return get(files)
 
+
+def get_medium():
+    files = []
+    field_names = ['userID', 'watchlink', 'geoData', 'tags', 'IGNORE', 'IGNORE']
+    files.append(DataFile('train2012_subset', './', '\n', ' : ', ' ', field_names, 'tags'))
+    return get(files)
+
+
+def get_large():
+    files = []
+    field_names = ['userID', 'watchlink', 'geoData', 'tags', 'IGNORE', 'IGNORE']
+    files.append(DataFile('train2012', './', '\n', ' : ', ' ', field_names, 'tags'))
+    return get(files)
+
+
+def get(files):
     data = []
-    DROP_FIELDS = set(['title', 'description', 'idk', 'userlocation', 'region', 'locality', 'country'])
 
     for data_file in files:
         raw_data = []
@@ -51,7 +66,7 @@ def get(files=[]):
                 continue
             entry_dict = {}
             for j in range(len(data_file.field_names)):
-                if data_file.field_names[j] in DROP_FIELDS:
+                if data_file.field_names[j] == 'IGNORE':
                     continue
 
                 if data_file.is_tag_field_name(data_file.field_names[j]):
