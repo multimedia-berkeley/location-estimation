@@ -18,7 +18,7 @@ def main(file_size, MAX_ITERATIONS=99):
     loc_by_img = {}
 
     preprocess_timer = Timer()
-    locality = get_tag_locality()
+    locality = get_tag_locality(file_size)
     mean_loc_by_tag = process_train_tags(train_data, locality)
     train_imgs_by_tag = process_training_data(train_data, loc_by_img, mean_loc_by_tag)
     test_imgs_by_tag = process_test_data(test_data, loc_by_img, mean_loc_by_tag, locality)
@@ -55,9 +55,9 @@ def get_data(file_size):
     return train_data, test_data
 
 
-def get_tag_locality():
+def get_tag_locality(file_size):
     locality_str = ''
-    with open('./tagweights.tsv', 'r') as f:
+    with open(file_size + '_tagweights.tsv', 'r') as f:
         locality_str = f.read()
     return eval(locality_str)
 
@@ -124,9 +124,7 @@ def remove_low_locality_tags(locality, tags_list):
             tags_to_remove.append(tag)
         else:
             locality_score = locality[tag]
-            if type(locality_score) is tuple:
-                locality_score = locality_score[0]
-            if locality_score < LOCALITY_THRESHOLD: 
+            if locality_score[0] < LOCALITY_THRESHOLD: 
                 tags_to_remove.append(tag)
     for tag in tags_to_remove:
         tags_list.remove(tag)

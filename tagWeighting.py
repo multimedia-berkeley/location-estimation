@@ -85,7 +85,7 @@ def init():
         Nt = len(newtagDict[tag])
         if Nt > newnumItems / 20:
             #print tag, Nt
-            curweightDict = {tag: 0.0001}
+            curweightDict = {tag: (0.0001, Nt)}
 
         else:
             qDict = find_qDict(item, Lambda)
@@ -102,9 +102,9 @@ def init():
     l = weightDict.items()
     sorted_by_second = sorted(l, key=lambda tup: tup[1])
     pprint(sorted_by_second)
-    print len(l)
+    print(len(l))
     print("closed")
-    print time.time() - start, 'seconds'
+    print(time.time() - start, 'seconds')
     return 
 
 def parseDoc():
@@ -133,7 +133,7 @@ def parseDoc():
     tagList = []
     tagSet = set()
     #parsing inf1 and inf2 together
-    for line1, line2, line3 in itertools.izip(inf1, inf2, inf3):
+    for line1, line2, line3 in zip(inf1, inf2, inf3):
         if numItems == NUM_LINES:
             #print("here1")
             break
@@ -262,7 +262,7 @@ def tag_weighting(Nt, q_Dict, Lambda, w):
         qVal = 0
         q_Len = 0
         # q_List is a list of ((lon1, lat1), (lon2, lat2)) pairs and 0.0 (if not satisfy lambda)
-        q_List = q_Dict.values()[0]
+        q_List = list(q_Dict.values())[0]
         q_newList = []
         # get rid of items that does not satisfy lambda in q_List and put the rest into q_newList     
         #print q_List
