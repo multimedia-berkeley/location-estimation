@@ -133,6 +133,9 @@ class UndirectedGraph(object):
 
         self.next_vert_id += 1
 
+    def contains_vertex(self, label):
+        return label in self.vertex_mappings
+
     def expand_adj_mtx(self):
         old_size = self.adj_mtx.shape[0]
         new_size = old_size * self.ADJ_MTX_EXPAND_FACTOR

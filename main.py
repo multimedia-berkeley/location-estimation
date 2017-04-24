@@ -186,7 +186,6 @@ def process_test_data(test_data, loc_by_img, tag_approx_loc, locality):
             if tag in tag_approx_loc and tag_approx_loc[tag].var < min_var_loc.var:
                 min_var_loc = tag_approx_loc[tag]
 
-            # Add img to test_imgs_by_tag
             if tag not in test_imgs_by_tag:
                 test_imgs_by_tag[tag] = []
             test_imgs_by_tag[tag].append(test_img['watchlink'])
@@ -197,17 +196,17 @@ def process_test_data(test_data, loc_by_img, tag_approx_loc, locality):
 
 def create_graph(train_data, test_data, train_imgs_by_tag, test_imgs_by_tag):
     def add_vertices():
-        for img in train_data:
-            G.add_vertex(img['watchlink'])
+        # Adds all test images to the graph
         for img in test_data:
             G.add_vertex(img['watchlink'])
-        '''
-        # For only adding necessary train images to the graph
+
+        # Adds only necessary train images to the graph
         for tag in test_imgs_by_tag:
             if tag in train_imgs_by_tag:
                 for train_img in train_imgs_by_tag[tag]:
-                    G.add_vertex(train_img)
-        '''
+                    if not G.contains_vertex(train_img):
+                        G.add_vertex(train_img)
+
     def add_edges():
         for tag in test_imgs_by_tag:
             test_neighbors = test_imgs_by_tag[tag]
