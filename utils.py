@@ -1,3 +1,5 @@
+import sys
+import os
 import math
 from time import time
 from heapq import heappush, heappop
@@ -200,4 +202,10 @@ class MedianFinder(object):
             return self.upper[0]
         else:
             return -self.lower[0]
+
+def disable_print():
+    sys.stdout = open(os.devnull, 'w')
+
+def enable_print():
+    sys.stdout = sys.__stdout__
 

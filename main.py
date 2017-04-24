@@ -1,14 +1,18 @@
 import argparse
 import multiprocessing as mp
 import time
+import sys
+import os.path
 
 import numpy as np
 
 import data
+import tagWeighting
+import locality_gen
 from utils import *
 
 
-def main(file_size, MAX_ITERATIONS=99):
+def main(file_size, refresh, MAX_ITERATIONS=99):
     main_timer = Timer()
 
     data_fetch_timer = Timer()
@@ -18,7 +22,7 @@ def main(file_size, MAX_ITERATIONS=99):
     loc_by_img = {}
 
     preprocess_timer = Timer()
-    locality = get_tag_locality(file_size)
+    locality = get_tag_locality(file_size, refresh)
     mean_loc_by_tag = process_train_tags(train_data, locality)
     train_imgs_by_tag = process_training_data(train_data, loc_by_img, mean_loc_by_tag)
     test_imgs_by_tag = process_test_data(test_data, loc_by_img, mean_loc_by_tag, locality)
@@ -55,8 +59,22 @@ def get_data(file_size):
     return train_data, test_data
 
 
-def get_tag_locality(file_size):
-    locality_str = ''
+def get_tag_locality(file_size, should_refresh):
+    def generate_tagweights():
+        locality_gen.main(file_size)
+        new_argv = [sys.argv[0]]
+        new_argv.extend([file_size + '_train_metadata', file_size + '_train_photo', file_size + '_train_uid',
+                file_size + '_tagweights.tsv', '40', '1', '5000000', '300'])
+        old_argv = sys.argv
+        sys.argv = new_argv  # Hacky way to pass arguments to tagWeighting.py
+        tagWeighting.init()
+        sys.argv = old_argv
+ 
+    if should_refresh or not os.path.isfile(file_size + '_tagweights.tsv'):
+        disable_print()
+        generate_tagweights()
+        enable_print()
+
     with open(file_size + '_tagweights.tsv', 'r') as f:
         locality_str = f.read()
     return eval(locality_str)
@@ -316,6 +334,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--maxiter', nargs=1, type=int,
             help='Max number of iterations to run.')
+    parser.add_argument('-r', '--refresh', action='store_true', 
+            help='Regenerate the tag weight files.')
     parser.add_argument('--small', action='store_const', const=1,
             help='Use a large dataset.')
     parser.add_argument('--medium', action='store_const', const=1,
@@ -342,7 +362,7 @@ if __name__ == '__main__':
     if arguments.small + arguments.medium + arguments.large > 1:
         raise Exception('Can only specify one time of dataset')
     if arguments.maxiter is None:
-        main(file_size)
+        main(file_size, arguments.refresh)
     else:
-        main(file_size, arguments.maxiter[0])
+        main(file_size, arguments.refresh, arguments.maxiter[0])
 
