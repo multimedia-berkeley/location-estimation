@@ -1,8 +1,5 @@
 import argparse
-import csv
 import multiprocessing as mp
-import os.path
-import pickle
 import time
 
 import numpy as np
@@ -52,19 +49,6 @@ def main(file_size, MAX_ITERATIONS=99):
 
 
 def get_data(file_size):
-    '''
-    if os.path.isfile('/int_train') and os.path.isfile('int_test'):
-        with open('int_train.pickle', 'rb') as f:
-            train_data = pickle.load(f)
-        with open('int_test.pickle', 'rb') as f:
-            test_data = pickle.load(f)
-    else:
-        train_data, test_data = data.get_train_test()
-        with open('int_train.pickle', 'wb') as f:
-            pickle.dump(train_data, f)
-        with open('int_test.pickle', 'wb') as f:
-            pickle.dump(test_data, f)
-    '''
     data_funcs_by_size = {'small': data.get_small, 'medium': data.get_medium, 'large': data.get_large}
     all_data = data_funcs_by_size[file_size]()
     train_data, test_data = data.split(all_data, 0.8)
