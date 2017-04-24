@@ -1,4 +1,13 @@
 .DS_Store
 *.swp
 __pycache__/
+*metadata
+*photo
+*uid
+*tagweights.tsv
+test2012
+train2012
+train2012_subset
+placing2011_train
+tagweighting.log
 
