@@ -53,6 +53,14 @@ def main(file_size, refresh, MAX_ITERATIONS=99):
 
 
 def get_data(file_size):
+    """Fetches training and test data.
+
+    Args:
+        file_size: 'small', 'medium', or 'large' indicating the size of the desired dataset
+
+    Returns:
+        (train_data, test_data) where train_data and test_data are lists of data points (each data point is a dict)
+    """
     data_funcs_by_size = {'small': data.get_small, 'medium': data.get_medium, 'large': data.get_large}
     all_data = data_funcs_by_size[file_size]()
     train_data, test_data = data.split(all_data, 0.8)
@@ -60,6 +68,18 @@ def get_data(file_size):
 
 
 def get_tag_locality(file_size, should_refresh):
+    """Fetches the tag locality scores.
+
+    A locality score ranks a tag on how useful it is for determining location.
+    A higher score is better.
+
+    Args:
+        file_size: 'small', 'medium', or 'large' indicating the size of the dataset to base the scores off of.
+        should_refresh: Boolean indicating whether to regenerate the locality scores regardless of whether the score files exist already.
+
+    Returns:
+        A dict mapping tags to a tuple where the first element in the tuple is the locality score.
+    """
     def generate_tagweights():
         locality_gen.main(file_size)
         new_argv = [sys.argv[0]]
