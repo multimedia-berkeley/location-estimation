@@ -154,6 +154,12 @@ def process_train_tags(train_data, locality):
 
 
 def remove_low_locality_tags(locality, tags_list):
+    """Mutates tags_list by removing low locality tags.
+
+    Args:
+        locality: A dict where each key is a tag and each value is a tuple where the first element is the locality score.
+        tags_list: The list of tags that will be mutated.
+    """
     '''Drop low locality tags. Mutates original list'''
     LOCALITY_THRESHOLD = 1 # Locality of 'newyorkcity' is 0.057
     tags_to_remove = []
