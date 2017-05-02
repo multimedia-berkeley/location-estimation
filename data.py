@@ -1,9 +1,6 @@
-#-*- coding: utf-8 -*-
-import sys
-import codecs
-#reload(sys)
-#sys.setdefaultencoding("utf-8")
-from utils import *
+import urllib.request
+import os.path
+
 
 class DataFile(object):
     def __init__(self, name, prefix, entry_delimiter, field_delimiter, tag_delimiter, field_names, tag_field_name):
@@ -17,6 +14,7 @@ class DataFile(object):
 
     def is_tag_field_name(self, field_name):
         return field_name == self.tag_field_name
+
 
 def get_train_test():
     train_files = []
@@ -33,23 +31,39 @@ def get_train_test():
 
 def get_small():
     files = []
+    file_name = 'placing2011_train'
+    url = 'https://s3.amazonaws.com/location-estimation/placing2011_train'
+    download_if_necessary(url, file_name)
     field_names = ['IGNORE', 'tags', 'IGNORE', 'userID', 'IGNORE', 'IGNORE', 'latitude', 'longitude', 'IGNORE', 'IGNORE', 'IGNORE', 'watchlink']
-    files.append(DataFile('placing2011_train', './', '\n', ' @#|#@ ', ', ', field_names, 'tags'))
+    files.append(DataFile(file_name, './', '\n', ' @#|#@ ', ', ', field_names, 'tags'))
     return get(files)
 
 
 def get_medium():
     files = []
+    file_name = 'train2012_subset'
+    url = 'https://s3.amazonaws.com/location-estimation/train2012_subset'
+    download_if_necessary(url, file_name)
     field_names = ['userID', 'watchlink', 'geoData', 'tags', 'IGNORE', 'IGNORE']
-    files.append(DataFile('train2012_subset', './', '\n', ' : ', ' ', field_names, 'tags'))
+    files.append(DataFile(file_name, './', '\n', ' : ', ' ', field_names, 'tags'))
     return get(files)
 
 
 def get_large():
     files = []
+    file_name = 'train2012'
+    url = 'https://s3.amazonaws.com/location-estimation/train2012'
+    download_if_necessary(url, file_name)
     field_names = ['userID', 'watchlink', 'geoData', 'tags', 'IGNORE', 'IGNORE']
     files.append(DataFile('train2012', './', '\n', ' : ', ' ', field_names, 'tags'))
     return get(files)
+
+
+def download_if_necessary(url, file_name):
+    if not os.path.isfile(file_name):
+        with urllib.request.urlopen(url) as source_file:
+            with open(file_name, 'w') as target_file:
+                target_file.write(source_file.read().decode('utf-8'))
 
 
 def get(files):
@@ -82,6 +96,7 @@ def get(files):
             data.append(entry_dict)
     return data
 
+
 def split(lst, proportion=0.5):
     def safe_div(a, b):
         if b == 0:
@@ -110,6 +125,7 @@ def split(lst, proportion=0.5):
                 test_users.add(user)
 
     return train, test
+
 
 def filter(data, place):
     LAT_LON_BOUNDS = {
