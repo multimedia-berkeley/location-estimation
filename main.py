@@ -29,9 +29,9 @@ def main(file_size, refresh, MAX_ITERATIONS=99):
     print('Took {0}s to preprocess the data.'.format(preprocess_timer.time()))
 
     create_graph_timer = Timer()
-    G = create_graph(train_data, test_data, train_imgs_by_tag, test_imgs_by_tag)
+    G = create_graph(test_data, train_imgs_by_tag, test_imgs_by_tag)
     print('Took {0}s to create the graph.'.format(create_graph_timer.time()))
-               
+
     update_timer = Timer()
     loc_by_img, num_iter, has_converged = run_update(G, test_data, loc_by_img, MAX_ITERATIONS)
     print('Took {0}s to apply the update algorithm.'.format(update_timer.time()))
@@ -84,12 +84,12 @@ def get_tag_locality(file_size, should_refresh):
         locality_gen.main(file_size)
         new_argv = [sys.argv[0]]
         new_argv.extend([file_size + '_train_metadata', file_size + '_train_photo', file_size + '_train_uid',
-                file_size + '_tagweights.tsv', '40', '1', '5000000', '300'])
+                         file_size + '_tagweights.tsv', '40', '1', '5000000', '300'])
         old_argv = sys.argv
         sys.argv = new_argv  # Hacky way to pass arguments to tagWeighting.py
         tagWeighting.init()
         sys.argv = old_argv
- 
+
     if should_refresh or not os.path.isfile(file_size + '_tagweights.tsv'):
         disable_print()
         generate_tagweights()
@@ -101,7 +101,7 @@ def get_tag_locality(file_size, should_refresh):
 
 
 def process_train_tags(train_data, locality):
-    def get_locations_by_tag():    
+    def get_locations_by_tag():
         locations_by_tag = {}
         for train_img in train_data:
             loc = Location(float(train_img['latitude']), float(train_img['longitude']))
@@ -118,24 +118,23 @@ def process_train_tags(train_data, locality):
         def get_mean_loc(tag):
             locations = locs_by_tag[tag]
             lst_lat = []
-            lst_lon = [] 
+            lst_lon = []
             for loc in locations:
                 lst_lat.append(loc.lat)
                 lst_lon.append(loc.lon)
             lst_lat, lst_lon = np.array(lst_lat), np.array(lst_lon)
-            
+
             avg_lat = np.mean(lst_lat)
             avg_lon = np.mean(lst_lon)
             avg_loc = Location(avg_lat, avg_lon)
 
             list_distance = []
-            for i in range(len(lst_lat)):
-                dist = Location.dist(avg_loc, Location(lst_lat[i], lst_lon[i]))
+            for lat, lon in zip(lst_lat, lst_lon):
+                dist = Location.dist(avg_loc, Location(lat, lon))
                 list_distance.append(dist)
-            avg_dist = np.mean(np.array(list_distance))
             var = np.var(list_distance)
             return Location(avg_lat, avg_lon, var)
-        
+
         tag_mean_loc = {}
         with mp.Pool(mp.cpu_count()) as p:
             locs = p.map(get_mean_loc, locs_by_tag.keys())
@@ -147,7 +146,7 @@ def process_train_tags(train_data, locality):
 
     for img in train_data:
         remove_low_locality_tags(locality, img['tags'])
-        
+
     locations_by_tag = get_locations_by_tag()
 
     return get_mean_loc_by_tag(locations_by_tag)
@@ -160,7 +159,6 @@ def remove_low_locality_tags(locality, tags_list):
         locality: A dict where each key is a tag and each value is a tuple where the first element is the locality score.
         tags_list: The list of tags that will be mutated.
     """
-    '''Drop low locality tags. Mutates original list'''
     LOCALITY_THRESHOLD = 1 # Locality of 'newyorkcity' is 0.057
     tags_to_remove = []
     for tag in tags_list:
@@ -168,7 +166,7 @@ def remove_low_locality_tags(locality, tags_list):
             tags_to_remove.append(tag)
         else:
             locality_score = locality[tag]
-            if locality_score[0] < LOCALITY_THRESHOLD: 
+            if locality_score[0] < LOCALITY_THRESHOLD:
                 tags_to_remove.append(tag)
     for tag in tags_to_remove:
         tags_list.remove(tag)
@@ -186,14 +184,14 @@ def process_training_data(train_data, loc_by_img, tag_approx_loc):
         for tag in img_tags:
             if tag_approx_loc[tag].var < min_var:
                 min_var = tag_approx_loc[tag].var
-            
+
             if tag not in tag_to_imgs:
                 tag_to_imgs[tag] = []
             tag_to_imgs[tag].append(train_img['watchlink'])
 
         loc_by_img[img_id] = Location(lat, lon, min_var)
     return tag_to_imgs
- 
+
 
 def process_test_data(test_data, loc_by_img, tag_approx_loc, locality):
     test_imgs_by_tag = {}
@@ -219,7 +217,7 @@ def process_test_data(test_data, loc_by_img, tag_approx_loc, locality):
     return test_imgs_by_tag
 
 
-def create_graph(train_data, test_data, train_imgs_by_tag, test_imgs_by_tag):
+def create_graph(test_data, train_imgs_by_tag, test_imgs_by_tag):
     def add_vertices():
         # Adds all test images to the graph
         for img in test_data:
@@ -238,7 +236,7 @@ def create_graph(train_data, test_data, train_imgs_by_tag, test_imgs_by_tag):
             for i in range(len(test_neighbors) - 1):
                 for j in range(i+1, len(test_neighbors)):
                     G.add_edge(test_neighbors[i], test_neighbors[j])
-            
+
             if tag in train_imgs_by_tag:
                 for test_img in test_neighbors:
                     for train_img in train_imgs_by_tag[tag]:
@@ -263,11 +261,11 @@ def run_update(G, test_data, loc_by_img, MAX_ITERATIONS):
 
         global update
         def update(test_img):
-                img_id = test_img['watchlink']
-                loc = loc_by_img[img_id]
-                lat, lon, var, delta_squared = calc_update(img_id, loc, G, loc_by_img)
-                return Location(lat, lon, var), delta_squared
- 
+            img_id = test_img['watchlink']
+            loc = loc_by_img[img_id]
+            lat, lon, var, delta_squared = calc_update(img_id, loc, G, loc_by_img)
+            return Location(lat, lon, var), delta_squared
+
         new_loc_by_img = loc_by_img.copy()
         with mp.Pool(mp.cpu_count()) as p:
             updates = p.map(update, test_data)
@@ -278,24 +276,22 @@ def run_update(G, test_data, loc_by_img, MAX_ITERATIONS):
                 delta_squared = updates[i][1]
                 new_loc_by_img[img_id] = new_loc
                 mean_squared_change = mean_squared_change / (i+1) * i + (delta_squared / (i + 1))
-        
+
         loc_by_img = new_loc_by_img
     return loc_by_img, num_iter, has_converged
 
 
 
 def calc_update(img, loc, G, loc_by_img):
-
     def safe_div(num1, num2):
         if num2 == 0:
             return num1 / (10 ** -40)
-        else:
-            return num1 / num2
+        return num1 / num2
 
     def calc_mean():
         neighbors = G.neighbors(img)
         lat_lon = np.array([loc.lat, loc.lon])
-        
+
         summation = np.zeros(2)
         for neighbor in neighbors:
             neighbor_loc = loc_by_img[neighbor]
@@ -359,36 +355,35 @@ def calc_errors(test_data, loc_by_img):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--maxiter', nargs=1, type=int,
-            help='Max number of iterations to run.')
-    parser.add_argument('-r', '--refresh', action='store_true', 
-            help='Regenerate the tag weight files.')
+                        help='Max number of iterations to run.')
+    parser.add_argument('-r', '--refresh', action='store_true',
+                        help='Regenerate the tag weight files.')
     parser.add_argument('--small', action='store_const', const=1,
-            help='Use a large dataset.')
+                        help='Use a large dataset.')
     parser.add_argument('--medium', action='store_const', const=1,
-            help='Use a large dataset.')
+                        help='Use a large dataset.')
     parser.add_argument('--large', action='store_const', const=1,
-            help='Use a large dataset.')
+                        help='Use a large dataset.')
     arguments = parser.parse_args()
-    file_size = 'small'
+    FILE_SIZE = 'small'
     if arguments.small is None:
         arguments.small = 0
     else:
-        file_size = 'small'
+        FILE_SIZE = 'small'
 
     if arguments.medium is None:
         arguments.medium = 0
     else:
-        file_size = 'medium'
+        FILE_SIZE = 'medium'
 
     if arguments.large is None:
         arguments.large = 0
     else:
-        file_size = 'large'
+        FILE_SIZE = 'large'
 
     if arguments.small + arguments.medium + arguments.large > 1:
         raise Exception('Can only specify one time of dataset')
     if arguments.maxiter is None:
-        main(file_size, arguments.refresh)
+        main(FILE_SIZE, arguments.refresh)
     else:
-        main(file_size, arguments.refresh, arguments.maxiter[0])
-
+        main(FILE_SIZE, arguments.refresh, arguments.maxiter[0])

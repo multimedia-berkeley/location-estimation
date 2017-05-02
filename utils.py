@@ -27,7 +27,7 @@ class Location(object):
     @property
     def lon(self):
         return self.loc[1]
-    
+
     @lon.setter
     def lon(self, lon):
         self.loc[1] = lon
@@ -58,14 +58,14 @@ class Location(object):
         loc1 = loc1.copy()
         loc2 = loc2.copy()
 
-        if abs(loc1.lat)>90 or abs(loc2.lat)>90 or abs(loc1.lon)>360 or abs(loc2.lon)>360:
+        if abs(loc1.lat) > 90 or abs(loc2.lat) > 90 or abs(loc1.lon) > 360 or abs(loc2.lon) > 360:
             dist = -99999
             print('Degree(s) illegal! distance = -99999')
             return dist
 
         if loc1.lon < 0:
             loc1.lon += 360
-        
+
         if loc2.lon < 0:
             loc2.lon += 360
 
@@ -89,7 +89,7 @@ class Location(object):
             loc1.lon = loc1.lon * deg2rad
             loc2.lat = loc2.lat * deg2rad
             loc2.lon = loc2.lon * deg2rad
-            dist = R_aver * math.acos(cos(loc1.lat)* cos(loc2.lat) * cos(loc1.lon-loc2.lon) + math.sin(loc1.lat) * math.sin(loc2.lat))
+            dist = R_aver * math.acos(math.cos(loc1.lat)* math.cos(loc2.lat) * math.cos(loc1.lon-loc2.lon) + math.sin(loc1.lat) * math.sin(loc2.lat))
 
         return dist
 
@@ -114,15 +114,14 @@ class Counter(object):
     def get_count(self, item):
         if item in self.counts:
             return self.counts[item]
-        else:
-            return 0
+        return 0
 
 class UndirectedGraph(object):
     def __init__(self):
         self.vertex_mappings = {}
         self.backwards_mapping = {}
         self.next_vert_id = 0
-        self.adj_mtx = np.zeros((1,1), dtype=bool) #Adjacency matrix
+        self.adj_mtx = np.zeros((1, 1), dtype=bool) #Adjacency matrix
         self.ADJ_MTX_EXPAND_FACTOR = 2
         self.num_edges = 0
 
@@ -154,9 +153,8 @@ class UndirectedGraph(object):
             self.adj_mtx[vert2_id][vert1_id] = True  # Since its an undirected graph
             self.num_edges += 1
             return 1
-        else:
-            return 0
-    
+        return 0
+
     def vertices(self):
         return list(self.vertex_mappings.keys())
 
@@ -164,7 +162,7 @@ class UndirectedGraph(object):
         neighbors = []
         vert_id = self.vertex_mappings[label]
         for i in range(len(self.adj_mtx[0])):
-           if self.adj_mtx[vert_id][i]:
+            if self.adj_mtx[vert_id][i]:
                neighbors.append(self.backwards_mapping[i])
         return neighbors
 
@@ -172,7 +170,7 @@ class UndirectedGraph(object):
 class Timer(object):
     def __init__(self):
         self.t0 = time()
-    
+
     def time(self):
         return time() - self.t0
 
@@ -194,7 +192,7 @@ class MedianFinder(object):
             heappush(self.upper, -heappop(self.lower))
         elif len(self.upper) - len(self.lower) > 1:
             heappush(self.lower, -heappop(self.upper))
-    
+
     def med(self):
         if len(self.lower) == 0 and len(self.upper) == 0:
             return None
@@ -208,4 +206,3 @@ def disable_print():
 
 def enable_print():
     sys.stdout = sys.__stdout__
-

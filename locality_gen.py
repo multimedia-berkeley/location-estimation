@@ -10,7 +10,7 @@ def main(file_size):
     data_funcs_by_size = {'small': data.get_small, 'medium': data.get_medium, 'large': data.get_large}
     all_data = data_funcs_by_size[file_size]()
     train, test = data.split(all_data, 0.8)
-   
+
     metadata = []
     photo = []
     uid = []
@@ -39,13 +39,13 @@ def write_to_file(lst, name):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--maxiter', nargs=1, type=int,
-            help='Max number of iterations to run.')
+                        help='Max number of iterations to run.')
     parser.add_argument('--small', action='store_const', const=1,
-            help='Use a large dataset.')
+                        help='Use a large dataset.')
     parser.add_argument('--medium', action='store_const', const=1,
-            help='Use a large dataset.')
+                        help='Use a large dataset.')
     parser.add_argument('--large', action='store_const', const=1,
-            help='Use a large dataset.')
+                        help='Use a large dataset.')
     arguments = parser.parse_args() # pylint: disable=invalid-name
     file_size = 'small'
     if arguments.small is None:
@@ -63,4 +63,3 @@ if __name__ == '__main__':
     else:
         file_size = 'large'
     main(file_size)
-

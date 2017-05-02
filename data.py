@@ -1,6 +1,8 @@
 import urllib.request
 import os.path
 
+from utils import Location
+
 
 class DataFile(object):
     def __init__(self, name, prefix, entry_delimiter, field_delimiter, tag_delimiter, field_names, tag_field_name):
@@ -101,14 +103,13 @@ def split(lst, proportion=0.5):
     def safe_div(a, b):
         if b == 0:
             return a
-        else:
-            return a / b
+        return a / b
 
     test = []
     train = []
     train_users = set()
     test_users = set()
-    
+
     # Ensures all images from any given user are all in only train or all in only test
     for entry in lst:
         user = entry['userID']
@@ -127,7 +128,7 @@ def split(lst, proportion=0.5):
     return train, test
 
 
-def filter(data, place):
+def filter_by_location(data, place):
     LAT_LON_BOUNDS = {
         'western_europe': [Location(35.606383, -11.094409), Location(58.715069, 15.972913)],
         'us': [Location(30, -126), Location(49, -67)],
@@ -142,4 +143,3 @@ def filter(data, place):
                 and lon > bounds[0].lon and lon < bounds[1].lon:
             result.append(entry)
     return result
-
