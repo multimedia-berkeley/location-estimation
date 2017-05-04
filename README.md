@@ -3,11 +3,12 @@
 This project attempts to estimate the location of images/videos based off of user-defined tags.
 
 ## Overview
+
 Based on this [paper](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.799.9639&rep=rep1&type=pdf). This project creates a Markov random field in which each node represents an image/video and its estimated location. The existence of an edge between nodes indicates that the nodes share a common tag. On each iteration of the algorithm, the Markov random field updates each node's estimated location based on the estimated locations of that node's neighbors.
 
 ## Lower Level Description of the Code
 
-1. Delete all low locality tags (TODO: describe locality more)
+1. Delete all low locality tags (see more under the "Locality" heading below)
 2. Find the average location in the training data for each tag
     * Also calculate the variance of locations for each tag
 3. Create an undirected graph
@@ -20,7 +21,17 @@ Based on this [paper](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.7
         * The average is of the neighbor's location and the neighbor's variance determines its weight
 6. Calculate the errors by finding the distance from each test image's estimated location to the ground truth location
 
+## Locality
+
+The locality of a tag describes how useful it is for determining location. For instance, a tag with a low locality score might be a tag such as ```"unitedstates"```. A tag with a high locality score might be a tag such as ```"timessquare"```.
+
+The metrics that the locality script ```tagWeighting.py``` uses to calculate locality scores is described in this paper http://ceur-ws.org/Vol-1436/Paper58.pdf.
+
 ## Things to Consider
+
+### General Improvements
+
+* When evaluating the entire dataset, the error does rise with each iteration of the update algorithm. However, when the test/training data points are limited to a region, such as California, and the tag locality scores are evaluated based on all non-test data points (training + other excluded data points worldwide), the error does fall on each iteration of the update algorithm.
 
 ### Accuracy Improvements
 
