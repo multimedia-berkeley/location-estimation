@@ -6,6 +6,20 @@ This project attempts to estimate the location of images/videos based off of use
 
 Based on this [paper](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.799.9639&rep=rep1&type=pdf). This project creates a Markov random field in which each node represents an image/video and its estimated location. The existence of an edge between nodes indicates that the nodes share a common tag. On each iteration of the algorithm, the Markov random field updates each node's estimated location based on the estimated locations of that node's neighbors.
 
+## Usage
+
+Preqrequisites for running this script are python3 and numpy.
+
+Running ```python main.py``` should be enough to start the script.  It will automatically download the required datasets and automatically generate the needed files.
+
+### Options
+
+```-m [number]``` will specify the maximum number of iterations to run if convergence is not found by that point (default is 99).
+
+```--small```, ```--medium```, or ```--large``` will utilize different sized datasets (default is "small").
+
+```-r``` will force the script to re-generate any automatically generated files.
+
 ## Lower Level Description of the Code
 
 1. Delete all low locality tags (see more under the "Locality" heading below)
