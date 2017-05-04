@@ -7,6 +7,8 @@ from utils import *
 
 
 def main(file_size):
+    """Generates the files needed to run tagWeighting.py (the locality script).
+    """
     data_funcs_by_size = {'small': data.get_small, 'medium': data.get_medium, 'large': data.get_large}
     all_data = data_funcs_by_size[file_size]()
     train, test = data.split(all_data, 0.8)

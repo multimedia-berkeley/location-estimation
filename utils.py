@@ -93,6 +93,7 @@ class Location(object):
 
         return dist
 
+
 class Counter(object):
     def __init__(self):
         self.counts = {}
@@ -115,6 +116,7 @@ class Counter(object):
         if item in self.counts:
             return self.counts[item]
         return 0
+
 
 class UndirectedGraph(object):
     def __init__(self):
@@ -176,6 +178,8 @@ class Timer(object):
 
 
 class MedianFinder(object):
+    """Keeps track of the median
+    """
     def __init__(self):
         self.lower = []
         self.upper = []

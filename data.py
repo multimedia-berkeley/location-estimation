@@ -6,6 +6,16 @@ from utils import Location
 
 class DataFile(object):
     def __init__(self, name, prefix, entry_delimiter, field_delimiter, tag_delimiter, field_names, tag_field_name):
+        """
+        Args:
+            name: The name of the file
+            prefix: The file path of the file
+            entry_delimiter: The delimiter between each entry in the data file
+            field_delimiter: The delimiter between each field within each entry
+            tag_delimiter: The delimiter between each tag within a list of tags
+            field_names: A list of labels for fields within each entry
+            tag_field_name: The label for the field where the tags are located
+        """
         self.name = name
         self.prefix = prefix
         self.entry_delimiter = entry_delimiter
@@ -20,12 +30,12 @@ class DataFile(object):
 
 def get_train_test():
     train_files = []
-    field_names = ['userID', 'watchlink', 'geoData', 'tags', 'idk', 'idk']
+    field_names = ['userID', 'watchlink', 'geoData', 'tags', 'IGNORE', 'IGNORE']
     train_files.append(DataFile('train2012', './', '\n', ' : ', ' ', field_names, 'tags'))
     train_data = get(train_files)
 
     test_files = []
-    field_names = ['userID', 'watchlink', 'geoData', 'tags', 'idk', 'idk']
+    field_names = ['userID', 'watchlink', 'geoData', 'tags', 'IGNORE', 'IGNORE']
     test_files.append(DataFile('test2012', './', '\n', ' : ', ' ', field_names, 'tags'))
     test_data = get(test_files)
     return train_data, test_data

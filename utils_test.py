@@ -1,9 +1,10 @@
 import unittest
 import random
+
 from utils import *
 
-class GraphTest(unittest.TestCase):
 
+class GraphTest(unittest.TestCase):
     def test_basic(self):
         G = UndirectedGraph()
         self.assertEqual(G.vertices(), [])
@@ -42,7 +43,6 @@ class GraphTest(unittest.TestCase):
 
 
 class MedianTest(unittest.TestCase):
-    
     def test_basic(self):
         M = MedianFinder()
         self.assertEqual(M.med(), None)
@@ -61,8 +61,8 @@ class MedianTest(unittest.TestCase):
         nums.sort()
         self.assertEqual(M.med(), nums[(len(nums)-1) // 2])
 
-class LocationTest(unittest.TestCase):
 
+class LocationTest(unittest.TestCase):
     def test_dist(self):
         place1 = Location(37.789216, -122.401476) # Montgomery Bart
         place2 = Location(37.784020, -122.408071) # Powell Bart
@@ -82,8 +82,8 @@ class LocationTest(unittest.TestCase):
         locs = [Location(0, 0), Location(1, 2), Location(2, 4)]
         self.assertEqual(Location(1, 2), Location.avg(locs))
 
-class CounterTest(unittest.TestCase):
 
+class CounterTest(unittest.TestCase):
     def test_basic(self):
         counter = Counter()
         items = []
@@ -101,7 +101,5 @@ class CounterTest(unittest.TestCase):
         self.assertEqual(40, counter.get_count('b'))
 
 
-
 if __name__ == '__main__':
     unittest.main()
-

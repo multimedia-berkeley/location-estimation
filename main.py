@@ -101,6 +101,10 @@ def get_tag_locality(file_size, should_refresh):
 
 
 def process_train_tags(train_data, locality):
+    """Calculates the mean location and spatial variance of each tag.
+
+    Note: Mutates train_data by deleting low locality tags.
+    """
     def get_locations_by_tag():
         locations_by_tag = {}
         for train_img in train_data:
@@ -135,14 +139,14 @@ def process_train_tags(train_data, locality):
             var = np.var(list_distance)
             return Location(avg_lat, avg_lon, var)
 
-        tag_mean_loc = {}
+        mean_loc_by_tag = {}
         with mp.Pool(mp.cpu_count()) as p:
             locs = p.map(get_mean_loc, locs_by_tag.keys())
             i = 0
             for tag in locs_by_tag:
-                tag_mean_loc[tag] = locs[i]
+                mean_loc_by_tag[tag] = locs[i]
                 i += 1
-        return tag_mean_loc
+        return mean_loc_by_tag
 
     for img in train_data:
         remove_low_locality_tags(locality, img['tags'])
@@ -172,7 +176,9 @@ def remove_low_locality_tags(locality, tags_list):
         tags_list.remove(tag)
 
 
-def process_training_data(train_data, loc_by_img, tag_approx_loc):
+def process_training_data(train_data, loc_by_img, mean_loc_by_tag):
+    """Sets locations for training images.
+    """
     tag_to_imgs = {}
     for train_img in train_data:
         img_id = train_img['watchlink']
@@ -182,8 +188,8 @@ def process_training_data(train_data, loc_by_img, tag_approx_loc):
         lat, lon = float(train_img['latitude']), float(train_img['longitude'])
         min_var = 10 ** 5
         for tag in img_tags:
-            if tag_approx_loc[tag].var < min_var:
-                min_var = tag_approx_loc[tag].var
+            if mean_loc_by_tag[tag].var < min_var:
+                min_var = mean_loc_by_tag[tag].var
 
             if tag not in tag_to_imgs:
                 tag_to_imgs[tag] = []
@@ -193,7 +199,11 @@ def process_training_data(train_data, loc_by_img, tag_approx_loc):
     return tag_to_imgs
 
 
-def process_test_data(test_data, loc_by_img, tag_approx_loc, locality):
+def process_test_data(test_data, loc_by_img, mean_loc_by_tag, locality):
+    """Initializes estimated locations for test images.
+
+    Note: Mutates test_data by deleting low locality tags.
+    """
     test_imgs_by_tag = {}
     for test_img in test_data:
         img_id = test_img['watchlink']
@@ -206,8 +216,8 @@ def process_test_data(test_data, loc_by_img, tag_approx_loc, locality):
         #min_var_loc = Location(52.52, 13.405, 15098163) # Approx lat/lon of Berlin, and approx var of tag 'iphone'
 
         for tag in img_tags:
-            if tag in tag_approx_loc and tag_approx_loc[tag].var < min_var_loc.var:
-                min_var_loc = tag_approx_loc[tag]
+            if tag in mean_loc_by_tag and mean_loc_by_tag[tag].var < min_var_loc.var:
+                min_var_loc = mean_loc_by_tag[tag]
 
             if tag not in test_imgs_by_tag:
                 test_imgs_by_tag[tag] = []
@@ -249,6 +259,12 @@ def create_graph(test_data, train_imgs_by_tag, test_imgs_by_tag):
 
 
 def run_update(G, test_data, loc_by_img, MAX_ITERATIONS):
+    """
+    Automatically halts when the mean update is less than 1 km.
+
+    Args:
+        MAX_ITERATIONS: The maximum number of iterations to run before halting, regardless of not yet converging.
+    """
     CONVERGENCE_THRESHOLD = 0.00006288 # About the mean sqaured difference of 1km
     mean_squared_change = 100 # Arbitrary number above CONVERGENCE_THRESHOLD
     num_iter = 0
@@ -262,8 +278,7 @@ def run_update(G, test_data, loc_by_img, MAX_ITERATIONS):
         global update
         def update(test_img):
             img_id = test_img['watchlink']
-            loc = loc_by_img[img_id]
-            lat, lon, var, delta_squared = calc_update(img_id, loc, G, loc_by_img)
+            lat, lon, var, delta_squared = calc_update(img_id, G, loc_by_img)
             return Location(lat, lon, var), delta_squared
 
         new_loc_by_img = loc_by_img.copy()
@@ -282,8 +297,15 @@ def run_update(G, test_data, loc_by_img, MAX_ITERATIONS):
 
 
 
-def calc_update(img, loc, G, loc_by_img):
+def calc_update(img, G, loc_by_img):
+    """
+    Args:
+        img: The id of the img to calculated updated values for.
+    """
+    loc = loc_by_img[img]
     def safe_div(num1, num2):
+        '''Safely divide by 0.
+        '''
         if num2 == 0:
             return num1 / (10 ** -40)
         return num1 / num2
@@ -310,7 +332,6 @@ def calc_update(img, loc, G, loc_by_img):
     def calc_var():
         neighbors = G.neighbors(img)
         numerator = 1
-
         summation = 0
         for neighbor in neighbors:
             neighbor_loc = loc_by_img[neighbor]
@@ -326,6 +347,9 @@ def calc_update(img, loc, G, loc_by_img):
 
 
 def calc_errors(test_data, loc_by_img):
+    """
+    Currently hardcoded to return a list of specific ranges of error.
+    """
     one_km_count = 0
     five_km_count = 0
     ten_km_count = 0
